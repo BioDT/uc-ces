@@ -1,0 +1,244 @@
+---
+title: "BioDT biodiversity model"
+date: "`r Sys.Date()`"
+output: html_document
+params:
+  taxonkey: 5334220
+  out_file: "untitled.tif"
+  n_bootraps: 5
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load packages
+
+```{r packages, warning=FALSE}
+#spatial
+library(terra)
+library(sf)
+
+#statistical
+library(tidymodels)
+
+#getting gbif data
+library(rgbif)
+
+#spatial thinning
+library(spThin)
+
+#data manipulation
+library(dplyr)
+
+set.seed(42)
+
+```
+
+## Load data
+
+### Species data from GBIF
+
+```{r load_gbif_data}
+#get the GBIF data from the API
+gbif_data <- occ_data(taxonKey = params$taxonkey,
+         gadmGid = "GBR.3_1", # scotland
+         limit=10000,
+         coordinateUncertaintyInMeters='0,101',
+         occurrenceStatus = NULL,
+         hasCoordinate=TRUE,
+         hasGeospatialIssue=FALSE)
+
+#get the appropriate columns
+gbif_data <- gbif_data$data %>% select(key, 
+                                       scientificName, 
+                                       decimalLatitude,
+                                       decimalLongitude,
+                                       datasetKey,
+                                       publishingOrgKey,
+                                       coordinateUncertaintyInMeters,
+                                       year,
+                                       month,
+                                       day,
+                                       license,
+                                       recordedBy,
+                                       identifiedBy,
+                                       rightsHolder
+                                       )
+
+gbif_xy <- gbif_data %>% select(x = decimalLongitude,y = decimalLatitude)
+
+#Species name
+print(gbif_data$scientificName %>% first())
+```
+
+### Environmental
+
+```{r load_environmental_data}
+#Currently loading a raster file locally but this could be upgraded to any other raster
+env_data <- rast("inputs/env-layers.tif")
+
+
+```
+
+## Process data
+
+```{r process_data}
+#FOREGROUND
+data_presence <- terra::extract(env_data,gbif_xy,xy=TRUE)
+data_presence$ID <- gbif_data$key
+
+#remove records with NAs
+data_presence <- na.omit(data_presence)
+# remove records from the same cell
+data_presence <- data_presence[!(data_presence[,-c(1:2)] %>% duplicated()),]
+data_presence$pres <- 1
+
+# thinning
+data_presence_thinned_rownames <- spThin::thin(data_presence,
+             lat.col = "y",
+             long.col = "x",
+             write.files = F,
+             spec.col = "pres",
+             thin.par = 0.5,
+             reps = 20,
+             locs.thinned.list.return=T,
+             verbose = F
+             ) %>% 
+  lapply(rownames) %>% 
+  lapply(as.numeric)
+
+data_presence_thinned <- data_presence_thinned_rownames %>% lapply(function(x){data_presence[x,]})
+
+data_presence_thinned <- data_presence_thinned[[20]]
+
+#BACKGROUND
+#how many background points do we want to extract?
+n_background <- 1000
+data_background <- spatSample(env_data,n_background,xy=TRUE,method =  "random")
+data_background$pres <- 0
+data_background$ID <- NA
+
+# if(is.list(data_presence_thinned)) {
+#   data_full <- data_presence_thinned %>% lapply(function(x){rbind(x,data_background)})
+# } else {
+data_full <- data_presence_thinned %>% rbind(data_background)
+# }
+
+#weights - I don't think I'm doig this right see https://www.tidyverse.org/blog/2022/05/case-weights/
+#weights <- data_full %>% group_by(pres) %>% summarise(n= n()) %>% mutate(weighting = 1/n*n_background)
+#data_full <- data_full %>% left_join(weights) %>% mutate(weighting = importance_weights(weighting))
+
+#visualise points
+plot(y~x,data_presence,col="grey")
+points(y~x,data_presence_thinned,col = "blue")
+title("Presence occurence data - thinned\n Grey = all points, blue = selected points")
+
+plot(y~x,data_background,col="Red")
+title("Pseudoabsenses")
+```
+
+
+## Fit bootstrapped model
+
+Here we bootstrap the data n times and fit a model to each bootstrap.
+
+```{r fit_models}
+fit_models <- function(data_df){
+  #define bootstraps
+  
+  boots <- bootstraps(data_df, times = params$n_bootraps)
+  
+  #define model formula
+  mod_form <- reformulate(names(data_df)[3:(ncol(data_df)-3)], response = 'pres')
+
+  #helper function to fit model to each bootstrap sample
+  fit_mod_on_bootstrap <- function(split) {
+      linear_reg() %>% 
+        set_engine("glm",family = stats::binomial(link = "logit")) %>%
+        fit(mod_form, analysis(split))
+  }
+  
+  #GAM
+  #helper function to fit model to each bootstrap sample
+  # fit_mod_on_bootstrap <- function(split) {
+  #     gen_additive_mod() %>% 
+  #     set_mode("regression") %>%
+  #       set_engine("mgcv",family = stats::binomial(link = "logit")) %>%
+  #       fit(mod_form, analysis(split))
+  # }
+  
+  #fit models to bootstraps
+  boot_models <- boots %>% 
+    mutate(model = map(splits, fit_mod_on_bootstrap),
+           coef_info = map(model, tidy))
+  
+  boot_models
+}
+
+#models <- data_full %>% lapply(fit_models)
+models <- fit_models(data_full)
+
+```
+
+## Evaluate model fit
+
+Here we evaluate model fit using yardstick. We first need to create a data frame of truth/estimate values.
+
+```{r eval_model_performance}
+#create a data frame with truth estimate columns
+estimates <- models$model %>% lapply(function(x){predict(x,data_full)})
+estimates <- estimates[[1]]
+names(estimates) <- "estimate"
+model_eval_df <- bind_cols(data_full,estimates)
+
+#calculate model performance metrics
+rmse(model_eval_df,"pres","estimate") #root mean squared error of prediction
+rsq(model_eval_df,"pres","estimate") # r squared
+```
+
+## Predict in space
+
+Make predictions across the environmental space for each of the boostrapped models then, combine across models to  calculate the mean and standard deviation.
+
+```{r predict}
+#raster predictions
+make_predictions <- function(models,env_data){
+  predictions <- models$model %>% lapply(FUN = function(x){predict(env_data,x)}) %>% rast()
+  names(predictions) <- paste0("boot",1:params$n_bootraps)
+  
+  predictions_mean <- mean(predictions)
+  predictions_sd <- stdev(predictions)
+  
+  rast(list(mean = predictions_mean, sd = predictions_sd))
+}
+
+mod_predictions <- make_predictions(models,env_data)
+```
+
+## Produce maps for report
+
+Here are maps for quick viewing.
+
+```{r plot}
+#if list
+# predictions_sd <- models %>% lapply(function(x){x$sd}) %>% rast() %>% mean()
+# predictions_mean <- models %>% lapply(function(x){x$mean}) %>% rast() %>% mean()
+
+predictions_sd <- mod_predictions$sd
+predictions_mean <- mod_predictions$mean
+
+plot(predictions_mean)
+points(decimalLatitude~decimalLongitude, gbif_data,pch = "+")
+plot(predictions_sd)
+points(decimalLatitude~decimalLongitude, gbif_data,pch = "+")
+```
+
+## Export
+
+Export the model the output file location provided to the parametised markdown
+
+```{r export}
+mod_predictions %>% writeRaster(params$out_file,overwrite=T)
+```
