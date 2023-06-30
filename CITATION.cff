@@ -1,0 +1,29 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: BioDT Cultural Ecosystem Services prototype Digital Twin
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Simon
+    family-names: Rolph
+    email: simrol@ceh.ac.uk
+    affiliation: UK Centre for Ecology & Hydrology
+    orcid: 'https://orcid.org/0000-0001-6755-9456'
+  - given-names: Chris
+    family-names: Andrews
+    affiliation: UK Centre for Ecology & Hydrology
+  - given-names: Will
+    family-names: Bolton
+    affiliation: UK Centre for Ecology & Hydrology
+  - given-names: Dylan
+    family-names: Carbone
+    affiliation: UK Centre for Ecology & Hydrology
+  - given-names: Jan
+    family-names: Dick
+    affiliation: UK Centre for Ecology & Hydrology
+repository-code: 'https://github.com/BioDT/uc-ces'
+url: 'https://biodt.eu/'
