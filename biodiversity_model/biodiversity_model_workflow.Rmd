@@ -104,7 +104,8 @@ data_presence_thinned_rownames <- spThin::thin(data_presence,
              thin.par = 0.5,
              reps = 20,
              locs.thinned.list.return=T,
-             verbose = F
+             verbose = F,
+             write.log.file=F
              ) %>% 
   lapply(rownames) %>% 
   lapply(as.numeric)
@@ -242,3 +243,11 @@ Export the model the output file location provided to the parametised markdown
 ```{r export}
 mod_predictions %>% writeRaster(params$out_file,overwrite=T)
 ```
+
+
+## Session info
+
+```{r session_info}
+sessionInfo()
+```
+

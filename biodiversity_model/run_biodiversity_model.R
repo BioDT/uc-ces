@@ -1,5 +1,11 @@
 args = commandArgs(trailingOnly=TRUE) # get arguments from command line call
 
+# Print the arguments
+print("Arguments:")
+for (arg in args) {
+  print(arg)
+}
+
 #arguments
 #1: species taxonid from GBIF
 #2: output location for tiff
@@ -11,10 +17,23 @@ if (length(args)==0) {
   stop("At least one argument must be supplied", call.=FALSE)
 }
 
+print("Working directory:")
+print(getwd())
+
 library(rmarkdown)
 
-#where is pandoc
-Sys.setenv(RSTUDIO_PANDOC="C:/Program Files/RStudio/bin/quarto/bin/tools")
+# #where is pandoc
+if(Sys.info()["sysname"] == "Windows"){
+  Sys.setenv(RSTUDIO_PANDOC="C:/Program Files/RStudio/bin/quarto/bin/tools")
+}
+
+# Function to get the Pandoc path
+if (rmarkdown::pandoc_available()) {
+  print("Pandoc available")
+  print(rmarkdown::find_pandoc())
+} else {
+  stop("Pandoc not found. Please make sure it is installed and accessible.")
+}
 
 #run model using R markdown file
 rmarkdown::render(input = "biodiversity_model_workflow.Rmd",
@@ -26,5 +45,6 @@ rmarkdown::render(input = "biodiversity_model_workflow.Rmd",
                   ),
                   envir = new.env()
                   )
+
 
 
