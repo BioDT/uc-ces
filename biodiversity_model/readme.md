@@ -139,6 +139,22 @@ output file: biodiversity_model_workflow.knit.md
 Output created: outputs/reports/report_5334220_2023-06-30.html
 ```
 
+### Running on LUMI
+
+Log onto LUMI, clone the repo via ssh and load some example environmental data:
+
+```
+git clone git@github.com:BioDT/uc-ces.git
+cd uc-ces
+curl -L -o "biodiversity_model/inputs/env-layers.tif" "https://drive.google.com/uc?export=download&id=1veEX3RG_JXu_ZYu2oQMbWQ2v0R2dt4fW"
+```
+
+Use singularity to  build a container
+
+See: https://docs.lumi-supercomputer.eu/software/containers/singularity/
+
+... to be continued
+
 ### Troubleshooting
 
 This error results from line ending issues
