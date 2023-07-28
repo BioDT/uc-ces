@@ -1,1 +1,28 @@
-Cultural Ecosystem Services use-case issue tracker
+# Models for Cultural Ecosystem Services Prototype Digital Twin
+
+This GitHub repository contains the model code required to run models to deliver the cultural ecosystem services pDT (previously 'use-case'). Readme last updated 28th July 2023.
+
+For more general background about the pDT then please visit the wiki page: https://wiki.eduuni.fi/display/cscRDIcollaboration/4.1.1.2.1+Cultural+Ecosystem+Services
+
+Please use the GitHub issues to discuss any development: https://github.com/BioDT/uc-ces/issues
+
+The `diagrams` folder contains any diagrams which can be edited with https://app.diagrams.net/
+
+## Digital Twin components
+
+![pipelines report diagram drawio (3)](https://github.com/BioDT/uc-ces/assets/17750766/c27cdbe3-85bd-4d6a-9b92-59ef5e9e5aaf)
+
+The Digital Twin comprises of two components: the recreation potential model and the biodiversity model. More detail about each model can be found on their corresponding readme within the repository:
+
+ * https://github.com/BioDT/uc-ces/tree/main/biodiversity_model
+ * https://github.com/BioDT/uc-ces/tree/main/recreation_model
+
+Both models are :
+
+ * implemented in R
+ * configured to be run from command line
+ * developed to run in a container, initially Docker with expectation that this can then be converted to a singularity container (https://docs.lumi-supercomputer.eu/software/containers/singularity/)
+
+The input data for each model is not stored in this repository.
+
+The user interface for the pDT will be developed as a module within the BioDT Shiny app (https://github.com/BioDT/biodt-shiny) 
