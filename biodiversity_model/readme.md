@@ -35,7 +35,7 @@ The model produces 2 outputs:
  
 ## Running the model
 
-### Not containerised
+### Running locally without a container
 
 For testing, the model can be run non-containerised. It is called from the command line using `Rscript` with arguments.
 
@@ -55,7 +55,7 @@ Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5
 
 The `run_biodiversity_model.R` file actually triggers `biodiversity_model_workflow.Rmd` which contains all the actual modelling code.
 
-### Containerised (Docker)
+### Running locally in a Docker container (Docker)
 
 The model can be run in a docker container. Build the Docker image (which we'll call `ces-biodiversity`) by locating yourself in the `biodiversity_model` directory then run:
 
@@ -139,9 +139,45 @@ output file: biodiversity_model_workflow.knit.md
 Output created: outputs/reports/report_5334220_2023-06-30.html
 ```
 
-### Running on LUMI
+### Running on LUMI in a singularity container
 
-Log onto LUMI, clone the repo via ssh and load some example environmental data:
+In order to run on LUMI we need to set up a different type of container called singularity (https://docs.lumi-supercomputer.eu/software/containers/singularity/). For converting docker container to singularity, two alternative approaches below could be used. Tuomas recommends the second approach as it's more aligned with the BioDT architecture plan (although the "final" container repository might be something else than github, the approach is still the same). For testing either way should work. He added an example version number 0.1.0 to commands below to keep track of the container as it evolves
+
+Approach 1: Create singularity container image file (sif) on a local machine (not windows) and transfer it to LUMI:
+
+```
+# Create ces-biodiversity_0.1.0.sif
+docker build -t ces-biodiversity:0.1.0 .
+docker save ces-biodiversity:0.1.0 -o temp.tar
+singularity build ces-biodiversity_0.1.0.sif docker-archive://temp.tar
+
+# Copy .sif file to LUMI
+scp ces-biodiversity_0.1.0.sif lumi:/projappl/project_XXXXXXXX/_my_directory_/
+```
+
+Approach 2: Push docker image to a repository and pull it to LUMI:
+```
+# Example for pushing to BioDT github
+
+# Build with correct tag and labels
+docker build --label "org.opencontainers.image.source=https://github.com/BioDT/uc-ces" --label "org.opencontainers.image.description=BioDT Cultural Ecosystem Services pDT - Biodiversity Component" -t ghcr.io/biodt/ces-biodiversity:0.1.0 .
+
+# Push (login requires github access token with scope 'write:packages', see
+# https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-personal-access-token-classic
+docker login ghcr.io
+docker push ghcr.io/biodt/ces-biodiversity:0.1.0
+
+# Then container should show up in https://github.com/BioDT/uc-ces in "Packages" panel
+
+# Pull image on LUMI (login is with github access token again)
+singularity pull --docker-login docker://ghcr.io/biodt/ces-biodiversity:0.1.0
+
+# File ces-biodiversity_0.1.0.sif should have been generated
+```
+
+Put the `.sif` file somewhere in the project directory
+
+Go to the scratch directory, clone the repo via ssh/https and load some example environmental data:
 
 ```
 git clone git@github.com:BioDT/uc-ces.git
@@ -149,11 +185,46 @@ cd uc-ces
 curl -L -o "biodiversity_model/inputs/env-layers.tif" "https://drive.google.com/uc?export=download&id=1veEX3RG_JXu_ZYu2oQMbWQ2v0R2dt4fW"
 ```
 
-Use singularity to  build a container
+Now you can run the model in a singularity container using the command `singularity exec`. For example:
 
-See: https://docs.lumi-supercomputer.eu/software/containers/singularity/
+```
+singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_0.1.0.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5`
+```
 
-... to be continued
+This time we don't seem to actually need the `entrypoint.sh` that was needed for the docker container.
+
+### Running on LUMI from a SLURM bash script
+
+For submitting jobs we use the slurm scheduler (rather than running jobs via the log in node as previously). For this we need to write a bash script for SLURM which can be called something like `submit.sh`. Here's an example script:
+
+```
+#!/bin/bash
+#SBATCH --job-name=ecosystem_services_biodiversity
+#SBATCH --account=project_465000357
+#SBATCH --time=00:10:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --partition=small
+
+singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_0.1.0.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5
+```
+
+You can then submit the job using 
+
+```
+sbatch submit.sh
+```
+
+You can then see how it's doing in the queue with `squeue --me`, here's an example response with the job running (well actually I think it had an error and the `CG` code means cancelling)
+```
+rolphsim@uan01:/scratch/project_465000357/rolphsim/uc-ces/biodiversity_model> squeue --me
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+           4372446     small ecosyste rolphsim CG       0:17      1 nid002215
+```
+
+Read more about the account/partitions etc here: https://docs.lumi-supercomputer.eu/runjobs/scheduled-jobs/slurm-quickstart/
 
 ### Troubleshooting
 
