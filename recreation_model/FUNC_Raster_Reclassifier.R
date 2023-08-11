@@ -1,6 +1,8 @@
-reclassify_rasters <- function(raster_folder, csv_folder, Score_column, output_folder) {
-  # Get a list of all raster files in the folder (excluding auxiliary files)
-  raster_files <- list.files(raster_folder, pattern = "^Raster_.*\\.tif$", full.names = TRUE)
+# input is a folder of raster files, a folder of csv files and the name of the column in each csv to use
+# output is a list of rasters
+reclassify_rasters <- function(raster_folder, csv_folder, Score_column) {
+  # Get a list of all files in the folder
+  raster_files <- list.files(raster_folder, full.names = TRUE)
 
   # Initialize a list to store the modified raster objects
   modified_rasters <- list()
@@ -15,12 +17,9 @@ reclassify_rasters <- function(raster_folder, csv_folder, Score_column, output_f
 
     # Check if the CSV file exists
     if (!file.exists(csv_file)) {
-      cat("CSV file", csv_file, "not found for raster", raster_name, ". Skipping.\n")
-      next
+      cat("CSV file", csv_file, "not found for raster", raster_name, ". Aborting\n")
+      return(NULL)
     }
-
-    # Create the output file path with Score_column name
-    output_file <- file.path(output_folder, paste0("Scored_", raster_name, "_", Score_column, ".tif"))
 
     # Load the raster
     r <- raster(raster_file)
@@ -42,16 +41,10 @@ reclassify_rasters <- function(raster_folder, csv_folder, Score_column, output_f
     # Set NA values to 0
     r[is.na(r)] <- 0
 
-    # Save the modified raster
-    writeRaster(r, output_file, format = "GTiff", overwrite = TRUE)
-
-    # Print a success message
-    cat("Raster reclassification completed. Modified raster saved to", output_file, "\n")
-
     # Add the modified raster object to the list using the output file name as the key
-    modified_rasters[[basename(output_file)]] <- r
+    modified_rasters[[raster_file]] <- r
   }
 
-  # Return the list of modified raster objects
+  # Return the modified rasters
   return(modified_rasters)
 }
