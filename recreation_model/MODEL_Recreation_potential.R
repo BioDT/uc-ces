@@ -1,13 +1,21 @@
-# VARIABLES
-# folder with rasters and scores
-data_folder <- "data"
-output_folder <- "data/RP_Output"
+##############################################
+###                VARIABLES               ###
+##############################################
+args <- commandArgs(TRUE)
+if (length(args) == 0) {
+	stop("Please supply a score column to use as a command-line argument.")
+}
+# score column to be used throughout to score rasters
+Score_column <- args[1]
+
+# input directory
+input_folder <- "/input"
+# output directory
+output_folder <- "/output"
 # output boundaries
 target_shapefile <- "boundaries.shp"
 # empty raster name
 empty_raster <- "empty.tif"
-# score column to be used throughout to score rasters
-Score_column <- "SR"
 # Set maximum distance for the proximity in meters.  Is 1500 correct??
 max_distance <- 1500
 
@@ -24,7 +32,7 @@ source("FUNC_Process_Raster_Proximity.R")
 source("FUNC_Calculate_Euclidean_Distance.R")
 source("FUNC_Normalise_Rasters.R")
 
-setwd(data_folder)
+setwd(input_folder)
 
 # load in the shapefile mask
 mask_boundary <- shapefile(target_shapefile)
@@ -38,7 +46,6 @@ values(Raster_Empty) <- 0
 ##############################################
 ### COMPONENT 1 - COMPUTE NORMALIZED SLSRA ###
 ##############################################
-
 # firstly reclassify the unscored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "SLSRA"
@@ -55,7 +62,6 @@ writeRaster(SLSRA_Norm, file.path(output_folder, paste0("Component_SLSRA_", Scor
 ###############################################
 ### COMPONENT 2 - COMPUTE NORMALIZED FIPS_N ###
 ###############################################
-
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "FIPS_N"
@@ -83,7 +89,6 @@ writeRaster(FIPS_N_Norm, file.path(output_folder, paste0("Component_FIPS_N_", Sc
 ###############################################
 ### COMPONENT 3 - COMPUTE NORMALIZED FIPS_I ###
 ###############################################
-
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "FIPS_I"
@@ -109,7 +114,6 @@ writeRaster(FIPS_I_Norm, file.path(output_folder, paste0("Component_FIPS_I_", Sc
 ###############################################
 ### COMPONENT 4 - COMPUTE NORMALIZED Water ###
 ###############################################
-
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "Water"
