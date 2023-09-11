@@ -40,7 +40,7 @@ values(Raster_Empty) <- 0
 
 # firstly reclassify the unscored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
-raster_folder <- "SLSRA/Pre_Scored_Rasters"
+raster_folder <- "SLSRA"
 component_folder_SLSRA <- "SLSRA/Component_Output/"
 
 # Call the function to reclassify rasters by score
@@ -58,7 +58,8 @@ writeRaster(SLSRA_Norm, paste0(component_folder_SLSRA, "New_", Score_column, ".t
 
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
-raster_folder <- "FIPS_N/Pre_Scored_Rasters"
+raster_folder <- "FIPS_N"
+slope_folder <- file.path(raster_folder, "slope")
 component_folder_FIPS_N <- "FIPS_N/Component_Output/"
 
 # Call the function to reclassify rasters by score
@@ -68,11 +69,11 @@ modified_rasters <- reclassify_rasters(raster_folder, Score_column)
 slope_df <- data.frame(
   group_val_min = c(0, 1.72, 2.86, 5.71, 11.31, 16.7),
   group_val_max = c(1.72, 2.86, 5.71, 11.31, 16.7, Inf),
-  score = read.csv("FIPS_N/Slope/Table_Values/Scores_FIPS_N_Slope.csv")[[Score_column]]
+  score = read.csv(file.path(slope_folder,"FIPS_N_Slope.csv"))[[Score_column]]
 )
 reclass_m <- data.matrix(slope_df)
 
-Slope_Raster <- raster("FIPS_N/Slope/Pre_Scored_Rasters/Raster_FIPS_N_Slope.tif")
+Slope_Raster <- raster(file.path(slope_folder,"Raster_FIPS_N_Slope.tif"))
 modified_rasters[["slope"]] <-  reclassify(Slope_Raster, reclass_m)
 
 FIPS_N_Norm <- normalise_rasters(modified_rasters, Raster_Empty)
@@ -86,7 +87,7 @@ writeRaster(FIPS_N_Norm, paste0(component_folder_FIPS_N, "New_", Score_column, "
 
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
-raster_folder <- "FIPS_I/Pre_Scored_Rasters"
+raster_folder <- "FIPS_I"
 component_folder_FIPS_I <- "FIPS_I/Component_Output/"
 
 # Call the function to reclassify rasters by score
@@ -113,7 +114,7 @@ writeRaster(FIPS_I_Norm, paste0(component_folder_FIPS_I, "New_", Score_column, "
 
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
-raster_folder <- "Water/Pre_Scored_Rasters"
+raster_folder <- "Water"
 component_folder_Water <- "Water/Component_Output/"
 
 # Call the function to reclassify rasters by score
