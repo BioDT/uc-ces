@@ -1,6 +1,7 @@
 # VARIABLES
 # folder with rasters and scores
 data_folder <- "data"
+output_folder <- "data/RP_Output"
 # output boundaries
 target_shapefile <- "boundaries.shp"
 # empty raster name
@@ -41,7 +42,6 @@ values(Raster_Empty) <- 0
 # firstly reclassify the unscored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "SLSRA"
-component_folder_SLSRA <- "SLSRA/Component_Output/"
 
 # Call the function to reclassify rasters by score
 modified_rasters <- reclassify_rasters(raster_folder, Score_column)
@@ -50,7 +50,7 @@ modified_rasters <- reclassify_rasters(raster_folder, Score_column)
 SLSRA_Norm <- normalise_rasters(modified_rasters, Raster_Empty)
 
 # Write the output raster
-writeRaster(SLSRA_Norm, paste0(component_folder_SLSRA, "New_", Score_column, ".tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(SLSRA_Norm, file.path(output_folder, paste0("Component_SLSRA_", Score_column, ".tif")), format = "GTiff", overwrite = TRUE)
 
 ###############################################
 ### COMPONENT 2 - COMPUTE NORMALIZED FIPS_N ###
@@ -60,7 +60,6 @@ writeRaster(SLSRA_Norm, paste0(component_folder_SLSRA, "New_", Score_column, ".t
 # Set the folder paths here
 raster_folder <- "FIPS_N"
 slope_folder <- file.path(raster_folder, "slope")
-component_folder_FIPS_N <- "FIPS_N/Component_Output/"
 
 # Call the function to reclassify rasters by score
 modified_rasters <- reclassify_rasters(raster_folder, Score_column)
@@ -73,13 +72,13 @@ slope_df <- data.frame(
 )
 reclass_m <- data.matrix(slope_df)
 
-Slope_Raster <- raster(file.path(slope_folder,"Raster_FIPS_N_Slope.tif"))
+Slope_Raster <- raster(file.path(slope_folder,"FIPS_N_Slope.tif"))
 modified_rasters[["slope"]] <-  reclassify(Slope_Raster, reclass_m)
 
 FIPS_N_Norm <- normalise_rasters(modified_rasters, Raster_Empty)
 
 # Write the output raster
-writeRaster(FIPS_N_Norm, paste0(component_folder_FIPS_N, "New_", Score_column, ".tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(FIPS_N_Norm, file.path(output_folder, paste0("Component_FIPS_N_", Score_column, ".tif")), format = "GTiff", overwrite = TRUE)
 
 ###############################################
 ### COMPONENT 3 - COMPUTE NORMALIZED FIPS_I ###
@@ -88,7 +87,6 @@ writeRaster(FIPS_N_Norm, paste0(component_folder_FIPS_N, "New_", Score_column, "
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "FIPS_I"
-component_folder_FIPS_I <- "FIPS_I/Component_Output/"
 
 # Call the function to reclassify rasters by score
 modified_rasters <- reclassify_rasters(raster_folder, Score_column)
@@ -106,7 +104,7 @@ modified_rasters <- lapply(modified_rasters, normalise_rasters, Raster_Empty)
 modified_rasters <- lapply(modified_rasters, mask, mask_boundary)
 
 FIPS_I_Norm <- normalise_rasters(modified_rasters, Raster_Empty)
-writeRaster(FIPS_I_Norm, paste0(component_folder_FIPS_I, "New_", Score_column, ".tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(FIPS_I_Norm, file.path(output_folder, paste0("Component_FIPS_I_", Score_column, ".tif")), format = "GTiff", overwrite = TRUE)
 
 ###############################################
 ### COMPONENT 4 - COMPUTE NORMALIZED Water ###
@@ -115,7 +113,6 @@ writeRaster(FIPS_I_Norm, paste0(component_folder_FIPS_I, "New_", Score_column, "
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "Water"
-component_folder_Water <- "Water/Component_Output/"
 
 # Call the function to reclassify rasters by score
 modified_rasters <- reclassify_rasters(raster_folder, Score_column)
@@ -133,16 +130,13 @@ modified_rasters <- lapply(modified_rasters, normalise_rasters, Raster_Empty)
 modified_rasters <- lapply(modified_rasters, mask, mask_boundary)
 
 Water_Norm <- normalise_rasters(modified_rasters, Raster_Empty)
-writeRaster(Water_Norm, paste0(component_folder_Water, "New_", Score_column, ".tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(Water_Norm, file.path(output_folder, paste0("Component_Water_", Score_column, ".tif")), format = "GTiff", overwrite = TRUE)
 
 #############################################
 ### Compute and normalise final RP Model ###
 #############################################
-# List of folders containing the files
-folder_list <- c(component_folder_SLSRA, component_folder_FIPS_N, component_folder_FIPS_I, component_folder_Water)
-
 # Get the list SLSRA component rasters located in the folder SLSRA folder
-raster_files <- list.files(folder_list, pattern = ".tif$", full.names = TRUE)
+raster_files <- list.files(output_folder, pattern = "^Component_", full.names = TRUE)
 
 # Filter the raster files based on the two-letter code in Score_column
 raster_files <- raster_files[grepl(paste0(Score_column, ".tif$"), basename(raster_files))]
@@ -171,4 +165,4 @@ BioDT_RP_Norm  <- (sum_raster - min(sum_raster[], na.rm = TRUE)) /
 BioDT_RP_Norm <- mask(BioDT_RP_Norm, mask_boundary)
 
 # Write the output raster
-writeRaster(BioDT_RP_Norm, paste0("RP_Output/New_", Score_column, ".tif"), format = "GTiff", overwrite = TRUE)
+writeRaster(BioDT_RP_Norm, file.path(output_folder, paste0("recreation_potential_", Score_column, ".tif")), format = "GTiff", overwrite = TRUE)

@@ -2,7 +2,7 @@
 # output is a list of rasters
 reclassify_rasters <- function(raster_folder, Score_column) {
   # Get a list of all files in the folder
-  raster_files <- list.files(raster_folder, full.names = TRUE)
+  raster_files <- list.files(raster_folder, pattern=".tif$", full.names = TRUE)
 
   # Initialize a list to store the modified raster objects
   modified_rasters <- list()
