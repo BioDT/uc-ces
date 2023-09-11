@@ -1,6 +1,6 @@
 # input is a folder of raster files, a folder of csv files and the name of the column in each csv to use
 # output is a list of rasters
-reclassify_rasters <- function(raster_folder, csv_folder, Score_column) {
+reclassify_rasters <- function(raster_folder, Score_column) {
   # Get a list of all files in the folder
   raster_files <- list.files(raster_folder, full.names = TRUE)
 
@@ -9,11 +9,8 @@ reclassify_rasters <- function(raster_folder, csv_folder, Score_column) {
 
   # Loop through each raster file
   for (raster_file in raster_files) {
-    # Extract the raster name without the path and prefix
-    raster_name <- gsub("^Raster_", "", file_path_sans_ext(basename(raster_file)))
-
-    # Construct the corresponding CSV file path
-    csv_file <- file.path(csv_folder, paste0("Scores_", raster_name, ".csv"))
+    # Construct the path to the CSV of scores
+    csv_file <- file.path(paste0(file_path_sans_ext(raster_file), ".csv"))
 
     # Check if the CSV file exists
     if (!file.exists(csv_file)) {

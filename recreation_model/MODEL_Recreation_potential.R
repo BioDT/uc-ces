@@ -41,11 +41,10 @@ values(Raster_Empty) <- 0
 # firstly reclassify the unscored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "SLSRA/Pre_Scored_Rasters"
-csv_folder <- "SLSRA/Table_Values"
 component_folder_SLSRA <- "SLSRA/Component_Output/"
 
 # Call the function to reclassify rasters by score
-modified_rasters <- reclassify_rasters(raster_folder, csv_folder, Score_column)
+modified_rasters <- reclassify_rasters(raster_folder, Score_column)
 
 # Normalize the sum raster to a scale of 0-1
 SLSRA_Norm <- normalise_rasters(modified_rasters, Raster_Empty)
@@ -60,11 +59,10 @@ writeRaster(SLSRA_Norm, paste0(component_folder_SLSRA, "New_", Score_column, ".t
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "FIPS_N/Pre_Scored_Rasters"
-csv_folder <- "FIPS_N/Table_Values"
 component_folder_FIPS_N <- "FIPS_N/Component_Output/"
 
 # Call the function to reclassify rasters by score
-modified_rasters <- reclassify_rasters(raster_folder, csv_folder, Score_column)
+modified_rasters <- reclassify_rasters(raster_folder, Score_column)
 
 # Slope needs to be dealt with differently due to grouped output having issues in main function.
 slope_df <- data.frame(
@@ -89,11 +87,10 @@ writeRaster(FIPS_N_Norm, paste0(component_folder_FIPS_N, "New_", Score_column, "
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "FIPS_I/Pre_Scored_Rasters"
-csv_folder <- "FIPS_I/Table_Values"
 component_folder_FIPS_I <- "FIPS_I/Component_Output/"
 
 # Call the function to reclassify rasters by score
-modified_rasters <- reclassify_rasters(raster_folder, csv_folder, Score_column)
+modified_rasters <- reclassify_rasters(raster_folder, Score_column)
 
 # modify each raster by processing proximity
 modified_rasters <- lapply(modified_rasters, process_raster_proximity, max_distance)
@@ -117,11 +114,10 @@ writeRaster(FIPS_I_Norm, paste0(component_folder_FIPS_I, "New_", Score_column, "
 # firstly reclassify the un-scored rasters with the correct score using the function: FUNC_Raster_Reclassifier
 # Set the folder paths here
 raster_folder <- "Water/Pre_Scored_Rasters"
-csv_folder <- "Water/Table_Values"
 component_folder_Water <- "Water/Component_Output/"
 
 # Call the function to reclassify rasters by score
-modified_rasters <- reclassify_rasters(raster_folder, csv_folder, Score_column)
+modified_rasters <- reclassify_rasters(raster_folder, Score_column)
 
 # modify each raster by processing proximity
 modified_rasters <- lapply(modified_rasters, process_raster_proximity, max_distance)
