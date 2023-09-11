@@ -14,7 +14,7 @@ reclassify_rasters <- function(raster_folder, Score_column) {
 
     # Check if the CSV file exists
     if (!file.exists(csv_file)) {
-      cat("CSV file", csv_file, "not found for raster", raster_name, ". Aborting\n")
+      cat("CSV file", csv_file, "not found for raster", raster_file, ". Aborting\n")
       return(NULL)
     }
 
