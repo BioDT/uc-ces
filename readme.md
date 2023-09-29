@@ -21,9 +21,7 @@ Both models are :
 
  * implemented in R
  * configured to be run from command line
- * developed to run in a container, initially Docker with expectation that this can then be converted to a singularity container (https://docs.lumi-supercomputer.eu/software/containers/singularity/)
-
-The input data for each model is not stored in this repository.
+ * developed to run in a container, either Docker (if running on a local computing device) or singularity (also known as apptainer) when running on HPC (https://docs.lumi-supercomputer.eu/software/containers/singularity/)
 
 The user interface for the pDT will be developed as a module within the BioDT Shiny app (https://github.com/BioDT/biodt-shiny) 
 
