@@ -195,7 +195,7 @@ This time we don't seem to actually need the `entrypoint.sh` that was needed for
 
 ### Running on LUMI from a SLURM bash script
 
-For submitting jobs we use the slurm scheduler (rather than running jobs via the log in node as previously). For this we need to write a bash script for SLURM which can be called something like `submit.sh`. Here's an example script:
+For submitting jobs we use the slurm scheduler (rather than running jobs via the log in node as previously). For this we need to write a bash script for SLURM which can is in the repo in a file `submit_single_demo.sh`. Here's an example script:
 
 ```
 #!/bin/bash
@@ -214,7 +214,7 @@ singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiv
 You can then submit the job using 
 
 ```
-sbatch submit.sh
+sbatch submit_single_demo.sh
 ```
 
 You can then see how it's doing in the queue with `squeue --me`, here's an example response with the job running (well actually I think it had an error and the `CG` code means cancelling)
@@ -225,6 +225,11 @@ rolphsim@uan01:/scratch/project_465000357/rolphsim/uc-ces/biodiversity_model> sq
 ```
 
 Read more about the account/partitions etc here: https://docs.lumi-supercomputer.eu/runjobs/scheduled-jobs/slurm-quickstart/
+
+We can also set up slurm scripts to run an array of jobs for different species. You can see how this is set up in `submit_multiple_demo.sh` which can be run with:
+```
+sbatch submit_multiple_demo.sh
+```
 
 ### Troubleshooting
 
