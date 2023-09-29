@@ -26,3 +26,11 @@ Both models are :
 The input data for each model is not stored in this repository.
 
 The user interface for the pDT will be developed as a module within the BioDT Shiny app (https://github.com/BioDT/biodt-shiny) 
+
+## Running the models on LUMI
+
+Note that I (Simon) usually have to re-add my ssh key to the agent every time I log into LUMI with:
+```
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/lumi-simrol
+```
