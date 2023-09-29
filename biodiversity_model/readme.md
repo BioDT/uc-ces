@@ -168,6 +168,13 @@ docker login ghcr.io
 docker push ghcr.io/biodt/ces-biodiversity:0.1.0
 
 # Then container should show up in https://github.com/BioDT/uc-ces in "Packages" panel
+```
+
+Now log into LUMI and locate yourself whereever you wish to place the `.sif` file. We have currently been placing them in the project persistent (Project home directory for
+shared project files) file system `/projappl/project_465000357/` in a folder each per user eg. `/projappl/project_465000357/simonrolph/`
+
+```
+cd /projappl/project_465000357/simonrolph
 
 # Pull image on LUMI (login is with github access token again)
 singularity pull --docker-login docker://ghcr.io/biodt/ces-biodiversity:0.1.0
@@ -175,11 +182,10 @@ singularity pull --docker-login docker://ghcr.io/biodt/ces-biodiversity:0.1.0
 # File ces-biodiversity_0.1.0.sif should have been generated
 ```
 
-Put the `.sif` file somewhere in the project directory
-
-Go to the scratch directory, clone the repo via ssh/https and load some example environmental data:
+Now we're going to run the model with the new singularity container. Go to the scratch directory, clone the repo via ssh/https and load some example environmental data:
 
 ```
+cd /scratch/project_465000357
 git clone git@github.com:BioDT/uc-ces.git
 cd uc-ces
 curl -L -o "biodiversity_model/inputs/env-layers.tif" "https://drive.google.com/uc?export=download&id=1veEX3RG_JXu_ZYu2oQMbWQ2v0R2dt4fW"
@@ -211,7 +217,7 @@ For submitting jobs we use the slurm scheduler (rather than running jobs via the
 singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_0.1.0.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5
 ```
 
-You can then submit the job using 
+This script is assuming the `.sif` file is avaialable in the same location as noted earlier. You can then submit the job using 
 
 ```
 sbatch submit_single_demo.sh
@@ -240,7 +246,4 @@ standard_init_linux.go:228: exec user process caused: no such file or directory
 ```
 
 When developing code for Docker containers then check for line ending issues: If you're working on a Windows machine and sharing files with a Linux-based Docker container, line ending differences can sometimes cause issues. Ensure that the entry point script and the Dockerfile have Unix-style line endings (LF). You can use a text editor with the ability to save files with Unix-style line endings or use tools like dos2unix to convert the line endings.
-
-
-
 
