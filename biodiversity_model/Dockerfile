@@ -19,8 +19,8 @@ RUN R -e 'remotes::install_github("sjevelazco/flexsdm@HEAD")'
 
 
 ## copy files
-COPY /run_biodiversity_model.R /run_biodiversity_model.R
-COPY /biodiversity_model_workflow.Rmd /biodiversity_model_workflow.Rmd
+COPY R/run_biodiversity_model.R R/run_biodiversity_model.R
+COPY R/biodiversity_model_workflow.Rmd R/biodiversity_model_workflow.Rmd
 
 # environmental raster data
 COPY /inputs/env-layers.tif /inputs/env-layers.tif
