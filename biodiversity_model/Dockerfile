@@ -12,6 +12,11 @@ RUN R -e 'install.packages("spThin")'
 #RUN R -e 'install.packages("terra")'
 #RUN R -e 'install.packages("sf")'
 
+RUN R -e 'install.packages("remotes")'
+RUN R -e 'remotes::install_github("sjevelazco/flexsdm@HEAD")'
+
+
+
 
 ## copy files
 COPY /run_biodiversity_model.R /run_biodiversity_model.R

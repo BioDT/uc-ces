@@ -36,7 +36,7 @@ if (rmarkdown::pandoc_available()) {
 }
 
 #run model using R markdown file
-rmarkdown::render(input = "biodiversity_model_workflow.Rmd",
+rmarkdown::render(input = "biodiversity_model_workflow_flexsdm.Rmd",
                   output_file = paste0(args[3],"/report_",args[1],"_",Sys.Date(),".html"),
                   params = list(
                     taxonkey = args[1],

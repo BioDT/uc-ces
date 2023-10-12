@@ -1,0 +1,379 @@
+---
+title: "BioDT biodiversity model"
+date: "`r Sys.Date()`"
+output: html_document
+params:
+  taxonkey: 5135191
+  out_file: "untitled.tif"
+  n_bootraps: 5
+---
+
+
+```{r, include=FALSE}
+# testing 
+#params <- list(taxonkey= 5135191, out_file= "untitled.tif", n_bootraps= 5)
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load packages
+
+```{r packages, warning=FALSE}
+#spatial
+library(terra)
+library(sf)
+
+#statistical
+library(flexsdm)
+
+#getting gbif data
+library(rgbif)
+
+#spatial thinning
+library(spThin)
+
+#data manipulation
+library(dplyr)
+
+set.seed(42)
+
+```
+
+## Load data
+
+### Species data from GBIF
+
+```{r load_gbif_data}
+#get the GBIF data from the API
+gbif_data <- occ_data(taxonKey = params$taxonkey,
+         gadmGid = "GBR.3_1", # scotland
+         limit=10000,
+         coordinateUncertaintyInMeters='0,101',
+         occurrenceStatus = NULL,
+         hasCoordinate=TRUE,
+         hasGeospatialIssue=FALSE)
+
+#get the appropriate columns
+gbif_data <- gbif_data$data %>% select(key, 
+                                       scientificName, 
+                                       y = decimalLatitude,
+                                       x = decimalLongitude,
+                                       occurrenceStatus,
+                                       datasetKey,
+                                       publishingOrgKey,
+                                       coordinateUncertaintyInMeters,
+                                       year,
+                                       month,
+                                       day,
+                                       license,
+                                       recordedBy,
+                                       identifiedBy,
+                                       rightsHolder
+                                       )
+#set presence absence
+gbif_data$pr_ab <- 0
+gbif_data$pr_ab[gbif_data$occurrenceStatus == "PRESENT"] <- 1
+
+
+gbif_xy <- gbif_data %>% select(x,
+                                y)
+
+#Species name
+print(gbif_data$scientificName %>% first())
+```
+
+### Environmental
+
+```{r load_environmental_data}
+#Currently loading a raster file locally but this could be upgraded to any other raster
+env_data <- rast("inputs/env-layers.tif")
+
+env_data_low_res <- aggregate(env_data, fact = 10)
+
+```
+
+
+
+### FlexSDM workflow
+
+#### Delimit of a calibration area
+
+Delimiting the calibration area (aka accessible area) is an essential step in SDMs both in methodological and theoretical terms. The calibration area will affect several characteristics of a SDM like the range of environmental variables, the number of absences, the distribution of background points and pseudo-absences, and unfortunately, some performance metrics like AUC and TSS. There are several ways to delimit a calibration area. In calib_area(). We used a method that the calibration area is delimited by a 5-km buffer around presences (shown in the figure below).
+
+```{r}
+ca <-
+  calib_area(
+    data = gbif_data,
+    x = 'x',
+    y = 'y',
+    method =  c('buffer', width = 5000),
+    crs = crs(env_data)
+  ) # create a calibration area with 100 km buffer around occurrence points
+
+
+# visualize the species occurrences
+layer1 <- env_data_low_res[[8]]
+
+plot(layer1)
+plot(crop(ca, layer1), add=TRUE)
+points(gbif_data[,c("x", "y")], col = "#00000480")
+
+```
+
+#### Occurrence filtering
+
+Sample bias in species occurrence data has long been a recognized issue in SDM. However, environmental filtering of observation data can improve model predictions by reducing redundancy in environmental (e.g. climatic) hyper-space (Varela et al. 2014). Here we will use the function occfilt_env() to thin the red fir occurrences based on environmental space. This function is unique to flexsdm, and in contrast with other packages is able to use any number of environmental dimensions and does not perform a PCA before filtering.
+
+Next we apply environmental occurrence filtering using 8 bins and display the resulting filtered occurrence data
+
+```{r}
+gbif_data$id <- 1:nrow(gbif_data) # adding unique id to each row
+gbif_data_f <- gbif_data %>%
+  occfilt_env(
+    data = .,
+    x = "x",
+    y = "y",
+    id = "id",
+    nbins = 8,
+    env_layer = env_data
+  ) %>%
+  left_join(gbif_data, by = c("id", "x", "y"))
+
+plot(layer1)
+plot(crop(ca, layer1), add=TRUE)
+points(gbif_data[,c("x", "y")], col = "#00000480")
+points(gbif_data_f[,c("x", "y")], col = "#5DC86180")
+```
+
+#### Block partition with 4 folds
+
+Data partitioning, or splitting data into testing and training groups, is a key step in building SDMs. flexsdm offers multiple options for data partitioning and here we use a spatial block method. Geographically structured data partitioning methods are especially useful if users want to evaluate model transferability to different regions or time periods. The part_sblock() function explores spatial blocks with different raster cells sizes and returns the one that is best suited for the input datset based on spatial autocorrelation, environmental similarity, and the number of presence/absence records in each block partition. The function’s output provides users with 1) a tibble with presence/absence locations and the assigned partition number, 2) a tibble with information about the best partition, and 3) a SpatRaster showing the selected grid. Here we want to divide the data into 4 different partitions using the spatial block method.
+
+```{r}
+set.seed(10)
+gbif_data_f_partitioned <- gbif_data_f %>%
+  part_random(
+    data = .,
+    pr_ab = "pr_ab",
+    method = c(method = "kfold", folds = 4)
+  )
+
+# n points per block type
+gbif_data_f_partitioned %>%
+  dplyr::group_by(.part) %>%
+  dplyr::count()
+```
+
+#### Sample background
+
+The function sample_background() allows selection of background sample points based on different geographic restrictions and sampling methods. Here, we sample a set of background points based on our earlier spatial block partitioning using the “random” method. Using lapply() in this case ensures that we generate background points in each of our spatial blocks (n = 2). We are also specifying that we want ten times the amount of background points as our original occurrences and that our calibration area will be the buffer area around presence points (see section on “Calibration area”).
+
+```{r}
+set.seed(10)
+bg <- gbif_data_f_partitioned %>% 
+  split(f=gbif_data_f_partitioned$.part) %>%
+  lapply(function(data){
+    sample_background(
+      data = data,
+      x = "x",
+      y = "y",
+      n = nrow(data),
+      # number of background points to be sampled
+      method = "random",
+      rlayer = env_data,
+      calibarea = ca # A SpatVector which delimit the calibration area used for a given species
+    ) %>%
+      mutate(.part = data$.part[1])
+      
+  }) %>% 
+  bind_rows()
+  
+gbif_data_pa <- bind_rows(gbif_data_f_partitioned, bg)
+
+plot(layer1)
+plot(crop(ca, layer1), add=TRUE)
+points(gbif_data_f[,c("x", "y")], col = "#5DC86180")
+points(bg[,c("x", "y")], col = "red")
+
+#extract data from raster
+gbif_data_pa <- gbif_data_pa %>% sdm_extract(
+    data = .,
+    x = "x",
+    y = "y",
+    env_layer = env_data,
+    filter_na = TRUE
+  )
+
+gbif_data_pa %>% select(names(env_data))%>% is.na() %>%colSums()
+```
+
+#### Model fitting
+
+Now, fit our models. The flexsdm package offers a wide range of modeling options, from traditional statistical methods like GLMs and GAMs, to machine learning methods like random forests and support vector machines. For each modeling method, flexsdm provides both fit_ and tune_ functions, which allow users to use default settings or adjust hyperparameters depending on their research goals. Here, we will test out tune_max() (tuned Maximum Entropy model), fit_gau() (fit Guassian Process model), and fit_glm (fit Generalized Linear Model). For each model, we selected three threshold values to generate binary suitability predictions: the threshold that maximizes TSS (max_sens_spec), the threshold at which sensitivity and specificity are equal (equal_sens_spec), and the threshold at which the Sorenson index is highest (max_sorenson). In this example, we selected TSS as the performance metric used for selecting the best combination of hyper-parameter values in the tuned Maximum Entropy model.
+
+```{r}
+f_gau <- fit_gau(
+  data = gbif_data_pa,
+  response = "pr_ab",
+  predictors = names(env_data),
+  partition = ".part",
+  thr = c("max_sens_spec", "equal_sens_spec", "max_sorensen")
+)
+f_gau$performance %>% kable()
+
+f_glm <- fit_glm(
+  data = gbif_data_pa,
+  response = "pr_ab",
+  predictors = names(env_data),
+  partition = ".part",
+  thr = c("max_sens_spec", "equal_sens_spec", "max_sorensen"),
+  poly = 2
+)
+f_glm$performance %>% kable()
+
+f_svm <- fit_svm(
+  data = gbif_data_pa,
+  response = "pr_ab",
+  predictors = names(env_data),
+  partition = ".part",
+  thr = c("max_sens_spec", "equal_sens_spec", "max_sorensen"),
+)
+f_svm$performance %>% kable()
+
+```
+
+
+#### Model veriabitiy
+
+Calculate variability 
+
+```{r}
+#variability between model types
+# individ_models <- sdm_predict(
+#   models = list(f_gau,f_glm,f_svm),
+#   pred = env_data,
+#   thr = NULL,
+#   con_thr = FALSE,
+#   predict_area = NULL
+# )
+# 
+# variability <- rast(individ_models) %>% diff() %>% abs() 
+# plot(variability,col=cl)
+
+
+```
+
+#### Build ensemble model
+
+Spatial predictions from different SDM algorithms can vary substantially, and ensemble modeling has become increasingly popular. With the fit_ensemble() function, users can easily produce an ensemble SDM based on any of the individual fit_ and tune_ models included the package. In this example, we fit an ensemble model for red fir based on the weighted average of the three individual models. We used the same threshold values and performance metric that were implemented in the individual models.
+
+```{r}
+ens_m <- fit_ensemble(
+  models = list(f_gau, f_glm, f_svm),
+  ens_method = "meanw",
+  thr = c("max_sens_spec", "equal_sens_spec", "max_sorensen"),
+  thr_model = "max_sens_spec",
+  metric = "TSS"
+)
+
+model_perf <- sdm_summarize(list(f_gau, f_glm, f_svm, ens_m))
+knitr::kable(model_perf)
+
+```
+
+#### Project the ensemble model
+
+Next we project the ensemble model in space across the entire extent of our environmental layer, using the sdm_predict() function. This function can be use to predict species suitability across any area for species’ current or future suitability. In this example, we only project the ensemble model with one threshold, though users have the option to project multiple models with multiple threshold values. Here, we also specify that we want the function to return a SpatRast with continuous suitability values above the threshold (con_thr = TRUE).
+
+```{r}
+pr_1 <- sdm_predict(
+  models = ens_m,
+  pred = env_data,
+  thr = "max_sens_spec",
+  con_thr = TRUE,
+  predict_area = NULL
+)
+#> Predicting ensembles
+
+unconstrained <- pr_1$meanw[[1]]
+names(unconstrained) <- "unconstrained"
+
+cl <- rev(c("#FDE725", "#B3DC2B", "#6DCC57", "#36B677", "#1F9D87", "#25818E", "#30678D", "#3D4988", "#462777", "#440154"))
+plot(unconstrained, col=cl)
+```
+
+#### Constrain the model with msdm_posterior
+
+Finally, flexsdm offers users function that help correct overprediction of SDM based on occurrence records and suitability patterns. In this example we constrained the ensemble model using the method “occurrence based restriction”, which assumes that suitable patches that intercept species occurrences are more likely a part of species distributions than suitable patches that do not intercept any occurrences. Because all methods of the msdm_posteriori() function work with presences it is important to always use the original database (i.e., presences that have not been spatially or environmentally filtered). All of the methods available in the msdm_posteriori() function are based on Mendes et al. (2020).
+
+```{r}
+thr_val <- ens_m$performance %>%
+  dplyr::filter(threshold == "max_sens_spec") %>%
+  pull(thr_value)
+
+m_pres <- msdm_posteriori(
+  records = gbif_data,
+  x = "x",
+  y = "y",
+  pr_ab = "pr_ab",
+  cont_suit = pr_1$meanw[[1]],
+  method = c("obr"),
+  thr = c("sensitivity", sens = thr_val),
+  buffer = NULL
+)
+
+constrained <- m_pres$meanw[[1]]
+names(constrained) <- "constrained"
+plot(constrained, col=cl)
+
+```
+
+
+#### Distance from nearest point
+
+```{r}
+# create a blank vector with band name 'distance' and values are NA
+distance_rast <- env_data[[1]]
+values(distance_rast) <-NA
+names(distance_rast) <- "distance"
+
+#set grid cells with values to non-NA value (-1)
+values(distance_rast)[cellFromXY(distance_rast,xy=as.matrix(gbif_data[,c("x","y")]))] <- -1
+
+#create a raster of distance from nearest record
+distance_rast <- distance(distance_rast)/1000 #distance from cells in km
+distance_rast_scaled <- min(distance_rast,5)/5 #cap a 5 km and scale to 0-1
+plot(distance_rast_scaled)
+
+
+# create a raster of suitable, but far from record
+suitable_unrecorded <- unconstrained*distance_rast_scaled
+plot(suitable_unrecorded, col=cl)
+```
+
+## Export
+
+Export the model the output file location provided to the parametrised markdown
+
+```{r export}
+model_outputs <- constrained
+model_outputs$suitable_unrecorded <-suitable_unrecorded
+plot(model_outputs, col=cl)
+
+#save raster
+model_outputs %>% writeRaster(params$out_file,overwrite=T)
+
+#save model
+model_outputs %>% writeRaster(params$out_file,overwrite=T)
+```
+
+
+## Session info
+
+```{r session_info}
+sessionInfo()
+```
+
