@@ -57,19 +57,15 @@ The `run_biodiversity_model.R` file actually triggers `biodiversity_model_workfl
 
 ### Running locally in a Docker container (Docker)
 
-The model can be run in a docker container. Build the Docker image (which we'll call `ces-biodiversity`) by locating yourself in the `biodiversity_model` directory then run:
+The model can be run in a docker container. Build the latest docker image (which we'll call `ces-biodiversity`) by locating yourself in the `biodiversity_model` directory then run:
 
 ```
 docker build -t ces-biodiversity .
 ```
 
-This builds a Docker image using the `Dockerfile`. The base image is `rocker/geospatial:4.3.1`. You can see the list of packages that come installed here: https://github.com/rocker-org/rocker-versioned2/wiki 
+This builds a Docker image using the `Dockerfile`. The base image is `rocker/geospatial:4.3.1`. You can see the list of packages that come installed here: https://github.com/rocker-org/rocker-versioned2/wiki The Docker build process installs any extra R packages with lines like so `RUN R -e 'install.packages("tidymodels")' `. It the copies any necessary files into the docker container from the host. Creates folders for the outputs. We also copy an entry point shell file `entrypoint.sh`. The entry point script will receive the command line arguments and pass them to the R script. This script simply runs the R script (`run_biodiversity_model.R`) using the Rscript command and passes the command line arguments (`"$@"`) to it. Note that if you're building the docker image and intend to push it to the repository as a 'package' then you should go to the next section so that you build with all the required extra parameters. 
 
-The Docker build process installs any extra R packages with lines like so `RUN R -e 'install.packages("tidymodels")' `. It the copies any necessary files into the docker container from the host. Creates folders for the outputs.
-
-We also copy an entry point shell file `entrypoint.sh`. The entry point script will receive the command line arguments and pass them to the R script. This script simply runs the R script (`run_biodiversity_model.R`) using the Rscript command and passes the command line arguments (`"$@"`) to it.
-
-This means to run the model in a docker container you use this command:
+To run the model in a docker container you use this command:
 
 ```
 docker run ces-biodiversity TAXONKEY MODEL_OUTPUT_LOCATION REPORT_OUTPUT_LOCATION N_BOOTSTRAPS
@@ -81,7 +77,7 @@ By default, when your script saves an output within a Docker container, it will 
 docker run -v C:/Users/simrol/Documents/R_2023/uc-ces/biodiversity_model/outputs:/outputs ces-biodiversity TAXONKEY MODEL_OUTPUT_LOCATION REPORT_OUTPUT_LOCATION N_BOOTSTRAPS
 ```
 
-Here's a full example with real arguments.
+Here's a full example with real arguments:
 
 ```
 docker run -v C:/Users/simrol/Documents/R_2023/uc-ces/biodiversity_model/outputs:/outputs ces-biodiversity 5334220 outputs/maps outputs/reports 5
@@ -139,20 +135,22 @@ output file: biodiversity_model_workflow.knit.md
 Output created: outputs/reports/report_5334220_2023-06-30.html
 ```
 
+However, you can also get the container from the GitHub repository using `docker pull`, see: https://docs.docker.com/engine/reference/commandline/pull/
+
 ### Running on LUMI in a singularity container
 
-In order to run on LUMI we need to set up a different type of container called singularity (https://docs.lumi-supercomputer.eu/software/containers/singularity/). For converting docker container to singularity, two alternative approaches below could be used. Tuomas recommends the second approach as it's more aligned with the BioDT architecture plan (although the "final" container repository might be something else than github, the approach is still the same). For testing either way should work. He added an example version number 0.1.0 to commands below to keep track of the container as it evolves
+In order to run on LUMI we need to set up a different type of container called singularity (https://docs.lumi-supercomputer.eu/software/containers/singularity/). For converting docker container to singularity, two alternative approaches below could be used. Tuomas recommends the second approach as it's more aligned with the BioDT architecture plan (although the "final" container repository might be something else than github, the approach is still the same). For testing either way should work. He added an example version number X.X.X to commands below to keep track of the container as it evolves
 
 Approach 1: Create singularity container image file (sif) on a local machine (not windows) and transfer it to LUMI:
 
 ```
-# Create ces-biodiversity_0.1.0.sif
-docker build -t ces-biodiversity:0.1.0 .
-docker save ces-biodiversity:0.1.0 -o temp.tar
-singularity build ces-biodiversity_0.1.0.sif docker-archive://temp.tar
+# Create ces-biodiversity_X.X.X.sif
+docker build -t ces-biodiversity:X.X.X .
+docker save ces-biodiversity:X.X.X -o temp.tar
+singularity build ces-biodiversity_X.X.X.sif docker-archive://temp.tar
 
 # Copy .sif file to LUMI
-scp ces-biodiversity_0.1.0.sif lumi:/projappl/project_XXXXXXXX/_my_directory_/
+scp ces-biodiversity_X.X.X.sif lumi:/projappl/project_XXXXXXXX/_my_directory_/
 ```
 
 Approach 2: Push docker image to a repository and pull it to LUMI:
@@ -160,12 +158,12 @@ Approach 2: Push docker image to a repository and pull it to LUMI:
 # Example for pushing to BioDT github
 
 # Build with correct tag and labels
-docker build --label "org.opencontainers.image.source=https://github.com/BioDT/uc-ces" --label "org.opencontainers.image.description=BioDT Cultural Ecosystem Services pDT - Biodiversity Component" -t ghcr.io/biodt/ces-biodiversity:0.1.0 .
+docker build --label "org.opencontainers.image.source=https://github.com/BioDT/uc-ces" --label "org.opencontainers.image.description=BioDT Cultural Ecosystem Services pDT - Biodiversity Component" -t ghcr.io/biodt/ces-biodiversity:X.X.X .
 
 # Push (login requires github access token with scope 'write:packages', see
 # https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-personal-access-token-classic
 docker login ghcr.io
-docker push ghcr.io/biodt/ces-biodiversity:0.1.0
+docker push ghcr.io/biodt/ces-biodiversity:X.X.X
 
 # Then container should show up in https://github.com/BioDT/uc-ces in "Packages" panel
 ```
@@ -176,10 +174,10 @@ shared project files) file system `/projappl/project_465000357/` in a folder eac
 ```
 cd /projappl/project_465000357/simonrolph
 
-# Pull image on LUMI (login is with github access token again)
-singularity pull --docker-login docker://ghcr.io/biodt/ces-biodiversity:0.1.0
+# Pull image on LUMI (login is with github access token again, when prompted provide your github email, not username, and PAT))
+singularity pull --docker-login docker://ghcr.io/biodt/ces-biodiversity:X.X.X
 
-# File ces-biodiversity_0.1.0.sif should have been generated
+# File ces-biodiversity_X.X.X.sif should have been generated
 ```
 
 Now we're going to run the model with the new singularity container. Go to the scratch directory, clone the repo via ssh/https and load some example environmental data:
@@ -194,7 +192,7 @@ curl -L -o "biodiversity_model/inputs/env-layers.tif" "https://drive.google.com/
 Now you can run the model in a singularity container using the command `singularity exec`. For example:
 
 ```
-singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_0.1.0.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5`
+singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_X.X.X.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5`
 ```
 
 This time we don't seem to actually need the `entrypoint.sh` that was needed for the docker container.
@@ -214,7 +212,7 @@ For submitting jobs we use the slurm scheduler (rather than running jobs via the
 #SBATCH --mem=16G
 #SBATCH --partition=small
 
-singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_0.1.0.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5
+singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_X.X.X.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5
 ```
 
 This script is assuming the `.sif` file is avaialable in the same location as noted earlier. You can then submit the job using 
