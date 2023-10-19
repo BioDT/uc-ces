@@ -1,0 +1,85 @@
+section,subsection,element,Value
+Overview,Authorship,Study title,BioDT species distribution models
+Overview,Authorship,Author names,
+Overview,Authorship,Contact ,
+Overview,Authorship,Study link,
+Overview,Model objective,Model objective,Mapping and interpolation
+Overview,Model objective,Target output,Maps of potential species presence
+Overview,Focal Taxon,Focal Taxon,VARIES PER MODEL RUN
+Overview,Location,Location,Cairngorms national park
+Overview,Scale of Analysis,Spatial extent,
+Overview,Scale of Analysis,Spatial resolution,0.1
+Overview,Scale of Analysis,Temporal extent,NA
+Overview,Scale of Analysis,Temporal resolution,NA
+Overview,Scale of Analysis,Boundary,political
+Overview,Biodiversity data,Observation type,citizen science; field survey
+Overview,Biodiversity data,Response data type,point occurrence
+Overview,Predictors,Predictor types,climatic; habitat; topographic
+Overview,Hypotheses,Hypotheses,NA
+Overview,Assumptions,Model assumptions,"We assume that there is no temporal changes in environmental variables, that the abiotic variables is the sole predictor of species distributions other than biotic variables. "
+Overview,Algorithms,Modelling techniques,glm; svm; gaussian process model
+Overview,Algorithms,Model complexity,A variety of models were used without making run time too extensive.
+Overview,Algorithms,Model averaging,We calculated a mean weighted average based on model performance
+Overview,Workflow,Model workflow,"Pulled data from GBIF, conducts data thinning, fits model, and builds ensemble from models and predicts in space."
+Overview,Software,Software,THIS CAN BE GENERATED COMPUTATIONALLY
+Overview,Software,Code availability,https://github.com/BioDT/uc-ces/tree/main/biodiversity_model
+Overview,Software,Data availability,WILL BE A DERIVED DOI TO GBIF DATASET
+Data,Biodiversity data,Taxon names,FILLED PROGRAMATICALLY 
+Data,Biodiversity data,Taxonomic reference system,GBIF taxonomic backbone
+Data,Biodiversity data,Ecological level,species
+Data,Biodiversity data,Data sources,DOI TO GBIF
+Data,Biodiversity data,Sampling design,opportunistic data
+Data,Biodiversity data,Sample size,FILLED PROGRAMATICALLY 
+Data,Biodiversity data,Clipping,FILLED PROGRAMATICALLY 
+Data,Biodiversity data,Scaling,Spatial thinning  - may be FILLED PROGRAMATICALLY 
+Data,Biodiversity data,Cleaning,FILLED PROGRAMATICALLY 
+Data,Biodiversity data,Absence data,not applicable
+Data,Biodiversity data,Background data,NA
+Data,Biodiversity data,Errors and biases,
+Data,Data partitioning,Training data,conducted automatically in flexsdm - 4 fold random partitioning
+Data,Data partitioning,Validation data,NA
+Data,Data partitioning,Test data,NA
+Data,Predictor variables,Predictor variables,FILLED PROGRAMATICALLY  - can obtain names from raster
+Data,Predictor variables,Data sources,Google earth engine
+Data,Predictor variables,Spatial extent,
+Data,Predictor variables,Spatial resolution,0.1 km
+Data,Predictor variables,Coordinate reference system,
+Data,Predictor variables,Temporal extent,FILLED PROGRAMATICALLY 
+Data,Predictor variables,Temporal resolution,
+Data,Predictor variables,Data processing,
+Data,Predictor variables,Errors and biases,
+Data,Predictor variables,Dimension reduction,
+Data,Transfer data,Data sources,
+Data,Transfer data,Spatial extent,
+Data,Transfer data,Spatial resolution,
+Data,Transfer data,Temporal extent,
+Data,Transfer data,Temporal resolution,
+Data,Transfer data,Models and scenarios,
+Data,Transfer data,Data processing,
+Data,Transfer data,Quantification of Novelty,
+Model,Variable pre-selection,Variable pre-selection,
+Model,Multicollinearity,Multicollinearity,
+Model,Model settings,Model settings (fitting),glm: no settings provided; svm: no settings provided; gaussian process model: no settings provided
+Model,Model settings,Model settings (extrapolation),
+Model,Model estimates,Coefficients,
+Model,Model estimates,Parameter uncertainty,
+Model,Model estimates,Variable importance,
+Model,Model selection - model averaging - ensembles,Model selection,
+Model,Model selection - model averaging - ensembles,Model averaging,
+Model,Model selection - model averaging - ensembles,Model ensembles,
+Model,Analysis and Correction of non-independence,Spatial autocorrelation,
+Model,Analysis and Correction of non-independence,Temporal autocorrelation,
+Model,Analysis and Correction of non-independence,Nested data,
+Model,Threshold selection,Threshold selection,
+Assessment,Performance statistics,Performance on training data,
+Assessment,Performance statistics,Performance on validation data,
+Assessment,Performance statistics,Performance on test data,
+Assessment,Plausibility check,Response shapes,
+Assessment,Plausibility check,Expert judgement,
+Prediction,Prediction output,Prediction unit,
+Prediction,Prediction output,Post-processing,
+Prediction,Uncertainty quantification,Algorithmic uncertainty,
+Prediction,Uncertainty quantification,Input data uncertainty,
+Prediction,Uncertainty quantification,Parameter uncertainty,
+Prediction,Uncertainty quantification,Scenario uncertainty,
+Prediction,Uncertainty quantification,Novel environments,
