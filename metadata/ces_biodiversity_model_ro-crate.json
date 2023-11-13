@@ -1,7 +1,13 @@
 {
   "@context": [
     "http://doi.org/10.5063/schema/codemeta-2.0",
-    "http://w3id.org/ro/crate/1.2-DRAFT/context"
+    "http://w3id.org/ro/crate/1.2-DRAFT/context",
+    {
+      "coordinatePrecision": "http://rs.tdwg.org/dwc/terms/coordinatePrecision",
+      "taxonID": "http://rs.tdwg.org/dwc/terms/taxonID",
+      "measurementType": "http://rs.tdwg.org/dwc/terms/measurementType",
+      "measurementUnit": "http://rs.tdwg.org/dwc/terms/measurementUnit"
+    }
   ],
   "@graph": [
     {
@@ -14,9 +20,9 @@
     {
       "@id": "./",
       "@type": ["Dataset", "SoftwareApplication"],
+      "identifier": "",
       "name": "Cultural Ecosystem Services pDT - Biodiversity Model",
       "description": "Species distribution models for species that provide cultural ecosystem services.",
-      "softwareVersion": "0.1.0",
       "dateCreated": "2023-06-29",
       "dateModified": "2023-09-10",
       "license": {"@id": "https://spdx.org/licenses/MIT.html"},
@@ -26,52 +32,82 @@
         {"@id": "https://orcid.org/TODO-XXXX-XXXX-XXX1"},
         {"@id": "https://orcid.org/0009-0003-5290-786X"},
         {"@id": "https://orcid.org/0000-0002-4180-9338"},
-        {"@id": "https://orcid.org/0000-0003-0401-5122"},
+        {"@id": "https://orcid.org/0000-0003-0401-5122"}
       ],
+      "taxonID": "",
+      "contentLocation": {"@id": "https://sws.geonames.org/2634869/"},
+      "temporalCoverage": "2023-11-01T00:00:00Z--2023-11-13T12:10:00Z",
+      "temporalResolution": "",
+      "measurementType": "",
+      "measurementUnit": "",
+      "predictorsType": "Examples: Climatic/Topographic/Edaphic/Habitat",
+      "modelObjective": "Examples: Inference/Mapping/Transfer",
+      "modelTargetOutput": "",
+      "modelHypotheses": "",
+      "modelAssumptions": "",
+      "modelAlgorithms": "",
+      "modelJustification": "",
+      "modelEnsembling": "",
+      "modelWorkflow": "",
       "codeRepository": "https://github.com/BioDT/uc-ces/",
       "contributors": "",
-      "programmingLanguage": "R",
+      "softwareVersion": "0.1.0",
       "runtimePlatform": "Docker",
+      "programmingLanguage": "R",
       "operatingSystem": ["Linux", "Windows", "Mac"],
       "softwareRequirements": ["tidymodels", "terra", "rbif"]
+    },
+    {
+      "@id": "https://sws.geonames.org/2634869/",
+      "@type": "Place",
+      "name": "Wallingford",
+      "description": "",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "51.59982",
+        "longitude": "-1.1248",
+        "name": "Latitude: 51.59982 Longitude: -1.1248",
+        "coordinatePrecision": "0.00001"
+      },
+      "spatialCoverage": "The municipality of Wallingford"
     },
     {
       "@id": "https://orcid.org/0000-0001-6755-9456",
       "@type": "Person",
       "name": "Simon Rolph",
       "email": "simrol@ceh.ac.uk",
-      "affiliation": {"@id": " https://ror.org/00pggkr55"}
+      "affiliation": {"@id": "https://ror.org/00pggkr55"}
     },
     {
       "@id": "https://orcid.org/0000-0003-2428-272X",
       "@type": "Person",
       "name": "Chris Andrews",
       "email": "",
-      "affiliation": {"@id": " https://ror.org/00pggkr55"}
+      "affiliation": {"@id": "https://ror.org/00pggkr55"}
     },
     {
       "@id": "https://orcid.org/TODO-XXXX-XXXX-XXX1",
       "@type": "Person",
       "name": "Will Bolton",
       "email": "",
-      "affiliation": {"@id": " https://ror.org/00pggkr55"}
+      "affiliation": {"@id": "https://ror.org/00pggkr55"}
     },
     {
       "@id": "https://orcid.org/0009-0003-5290-786X",
       "@type": "Person",
       "name": "Dylan Carbone",
       "email": "dylcar@ceh.ac.uk",
-      "affiliation": {"@id": " https://ror.org/00pggkr55"}
+      "affiliation": {"@id": "https://ror.org/00pggkr55"}
     },
     {
       "@id": "https://orcid.org/0000-0002-4180-9338",
       "@type": "Person",
       "name": "Jan Dick",
       "email": "",
-      "affiliation": {"@id": " https://ror.org/00pggkr55"}
+      "affiliation": {"@id": "https://ror.org/00pggkr55"}
     },
     {
-      "@id": "https://ror.org/0566bfb96",
+      "@id": "https://ror.org/00pggkr55",
       "@type": "Organization",
       "name": "UK Centre for Ecology & Hydrology",
       "url": "https://www.ceh.ac.uk/"
