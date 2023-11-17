@@ -11,6 +11,8 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+setwd("C:/Users/dylcar/OneDrive - UKCEH/Desktop/BioDT/uc-ces/biodiversity_model")
 ```
 
 Load packages
@@ -153,6 +155,8 @@ fit_models <- function(data_df){
   
   #define model formula
   mod_form <- reformulate(names(data_df)[3:(ncol(data_df)-3)], response = 'pres')
+  
+  print(mod_form)
 
   #helper function to fit model to each bootstrap sample
   fit_mod_on_bootstrap <- function(split) {

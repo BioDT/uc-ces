@@ -12,6 +12,7 @@ params:
 ```{r, include=FALSE}
 # testing 
 #params <- list(taxonkey= 5334220, out_file= "untitled.tif", n_bootraps= 6)
+setwd("C:/Users/dylcar/OneDrive - UKCEH/Desktop/BioDT/uc-ces/biodiversity_model")
 ```
 
 

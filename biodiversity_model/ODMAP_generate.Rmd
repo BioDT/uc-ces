@@ -1,0 +1,210 @@
+---
+output: word_document
+params: 
+    study_title: "Study title"
+    authors: "Authors"
+    
+title: "`r paste0(params$study_title)`"
+author: "`r paste0(params$authors)`"
+subtitle: "– ODMAP Protocol –"
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval=TRUE, message=FALSE, warning=FALSE)
+
+library(DT)
+library(tidyverse)
+library(rangeModelMetadata)
+
+ ##################################################################################################################################
+
+
+rmm_dict = rmmDataDictionary()
+odmap_dict_rmd = filter(odmap_dict,! element_id %in% c("o_title_1", "o_authorship_1", "o_authorship_2"))
+
+section = ""
+subsection = ""
+
+elem_hide = list("Inference and explanation" = c(pull(odmap_dict %>% filter(inference == 0), element_id), # unused elements
+                                                   unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(inference  == 0)), subsection_id)), # unused subsections
+                                                   "p"),
+                   "Prediction and mapping" =  c(pull(odmap_dict %>% filter(prediction == 0), element_id), 
+                                                 unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(prediction == 0)), subsection_id))),
+                   "Projection and transfer" =  c(pull(odmap_dict %>% filter(projection == 0), element_id),
+                                                  unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(projection  == 0)), subsection_id))))
+
+  elem_optional = c(pull(odmap_dict %>% filter(optional == 1), element_id), # optional elements
+                    unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(optional == 1)), subsection_id))) # optional subsections)
+
+  settings_tabset = NULL
+  
+  algorithms = character(0)
+
+  ##################################################################################################################################
+
+  model_settings = list(suggestions = rmm_dict %>% filter(field1 == "model" & field2 == "algorithm") %>% pull(field3) %>% unique() %>% trimws())
+                                  
+  model_settings_import = list(algorithms = character(0))
+  
+  output = list()
+  
+if(length(input_list$o_algorithms_1) > length(model_settings$settings_tabset)) { # New algorithm selected
+  new_algs = setdiff(input_list$o_algorithms_1, model_settings$settings_tabset)
+  for(new_alg in new_algs){
+    # Create dataframe for new algorithm
+    if(new_alg %in% model_settings_import[["algorithms"]]){
+      model_settings[[new_alg]] = model_settings_import[[new_alg]]
+    } else if(new_alg %in% filter(rmm_dict, field2 == "algorithm")$field3){
+      model_settings[[new_alg]] = rmm_dict %>%
+        filter(field1 == "model" & field2 == "algorithm" & field3 == new_alg) %>%
+        mutate(setting = entity, value = as.character(NA)) %>%
+        dplyr::select(setting, value)
+    } else {
+      model_settings[[new_alg]] = data.frame(setting = character(0), value = character(0))
+    }
+    
+    # Add new dataframe to output and settings_tabset
+    local({ # Needs local evaluation because of asynchronous execution of renderDataTable
+      .new_alg = new_alg
+      output[[.new_alg]] = renderDataTable(model_settings[[.new_alg]], editable = T, rownames = F,
+                                           options = list(dom = "t", pageLength = 50, autoWidth = T, columnDefs = list(list(width = '50%', targets = "_all"))))
+
+              model_settings[[.new_alg]][input_list[[paste0(.new_alg, '_cell_edit')]]$row, input_list[[paste0(.new_alg, '_cell_edit')]]$col + 1] = field_existsinput_list[[paste0(.new_alg, '_cell_edit')]]$value
+
+    })
+   # appendTab(inputId = "settings_tabset", select = T, tab = tabPanel(title = new_alg, value = new_alg, dataTableOutput(outputId = new_alg)))
+  }
+  model_settings$settings_tabset = input_list$o_algorithms_1 # update name list of displayed tabs
+} else {
+  hide_alg = setdiff(model_settings$settings_tabset, input_list$o_algorithms_1)
+  #removeTab(inputId = "settings_tabset", target = hide_alg)
+  model_settings$settings_tabset = input_list$o_algorithms_1
+}
+
+if(!is.null(input_list$settings_tabset)){
+  empty_row = data.frame(setting = NA, value = NA)
+  model_settings[[input_list$settings_tabset]] = rbind(model_settings[[input_list$settings_tabset]], empty_row)
+} 
+```
+
+
+```{r}
+
+  # Functions for dynamically knitting text elements
+  knit_section = function(section_id){
+    section = unique(odmap_dict$section[which(odmap_dict$section_id == section_id)])
+    cat("\n\n##", section, "\n")
+  }
+
+  knit_subsection= function(subsection_id){
+    # Get all elements
+    element_ids = odmap_dict$element_id[which(odmap_dict$subsection_id == subsection_id)]
+    subsection = unique(odmap_dict$subsection[which(odmap_dict$subsection_id == subsection_id)])
+
+    # Find out whether subsection needs to be rendered at all
+    # Are all elements optional?
+    all_optional = all((element_ids %in% elem_hide[[input_list$o_objective_1]] | element_ids %in% elem_optional))
+
+    # If not, render header
+    if(!all_optional){
+      cat("\n\n####", subsection, "\n")
+    } else { # if not, render header only when user provided optional inputs
+      all_empty = T
+      for(id in element_ids){
+        if(input_list[[id]] != ""){
+          all_empty = F
+          break
+        }
+      }
+      if(!all_empty){
+        cat("\n\n####", subsection, "\n")
+      }
+    }
+  }
+
+  knit_text = function(element_id){
+    if(input_list[[element_id]] == ""){
+      knit_missing(element_id)
+    } else {
+      element_name = odmap_dict$element[which(odmap_dict$element_id == element_id)]
+      cat("\n", element_name, ": ", input_list[[element_id]], "\n", sep="")
+    }
+  }
+
+  knit_authors = function(element_id){
+    paste(authors$df$first_name, authors$df$last_name, collapse = ", ")
+  }
+
+  knit_extent = function(element_id){
+    if(any(c(input_list[[paste0(element_id, "_xmin")]], input_list[[paste0(element_id, "_xmax")]], input_list[[paste0(element_id, "_ymin")]], input_list[[paste0(element_id, "_ymax")]])) == ""){
+      knit_missing(element_id)
+    } else {
+      element_value = paste(c(input_list[[paste0(element_id, "_xmin")]], input_list[[paste0(element_id, "_xmax")]],
+                              input_list[[paste0(element_id, "_ymin")]], input_list[[paste0(element_id, "_ymax")]]), collapse = ", ")
+      cat("\nSpatial extent: ", element_value, " (xmin, xmax, ymin, ymax)\n", sep="")
+    }
+  }
+
+  knit_suggestion = function(element_id){
+    if(is.null(input_list[[element_id]])){
+      knit_missing(element_id)
+    } else {
+      element_name = odmap_dict$element[which(odmap_dict$element_id == element_id)]
+      cat("\n", element_name, ": ", paste(input_list[[element_id]], collapse = ", "), "\n", sep="")
+    }
+  }
+
+  knit_model_settings = function(element_id){
+    if(is.null(input_list[["o_algorithms_1"]])){
+      knit_missing(element_id)
+    } else {
+      for(alg in input_list[["o_algorithms_1"]]){
+        settings_tab = model_settings[[alg]] %>% filter(value != "")
+        if(nrow(settings_tab) == 0) {
+          cat("\n\n <span style='color:#DC3522'>\\<", alg, "\\> </span>\n", sep = "")
+        } else {
+          settings_char = paste0(settings_tab$setting, " (", settings_tab$value, ")", collapse = ", ")
+          cat("\n", alg, ": ", settings_char, "\n", sep="")
+        }
+      }
+    }
+  }
+
+  knit_missing = function(element_id){
+    if(!(element_id %in% elem_hide[[input_list$o_objective_1]] | element_id %in% elem_optional)){
+      placeholder = odmap_dict$element[which(odmap_dict$element_id == element_id)]
+      cat("\n\n <span style='color:#DC3522'>\\<", placeholder, "\\> </span>\n", sep = "")
+    }
+  }
+```
+
+```{r, results = 'asis'}
+for(i in 1:nrow(odmap_dict_rmd)){
+  # Find out if new section header needs to be rendered
+  section_new = odmap_dict_rmd$section_id[i]
+  
+  if(section_new != section & !(section_new %in% elem_hide[[input_list$o_objective_1]])){
+    section = section_new
+    knit_section(section)
+  }
+
+  # Find out if new subsection header needs to be rendered
+  subsection_new = odmap_dict_rmd$subsection_id[i]
+  if(subsection_new != subsection & !(subsection_new %in% elem_hide[[input_list$o_objective_1]])){
+    subsection = subsection_new
+    knit_subsection(subsection)
+  }
+  
+  # Render elements
+  switch(odmap_dict_rmd$element_type[i],
+         text = knit_text(odmap_dict_rmd$element_id[i]),
+         suggestion = knit_suggestion(odmap_dict_rmd$element_id[i]),
+         objective = knit_suggestion(odmap_dict_rmd$element_id[i]),
+         extent = knit_extent(odmap_dict_rmd$element_id[i]),
+         model_algorithm = knit_suggestion(odmap_dict_rmd$element_id[i]),
+         model_setting = knit_model_settings(odmap_dict_rmd$element_id[i]))
+  
+}
+```
+

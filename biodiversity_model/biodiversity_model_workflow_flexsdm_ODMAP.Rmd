@@ -390,10 +390,10 @@ raster_object <- rast("untitled.tif")
 extent <- ext(raster_object)
 
 # Extract xmin, xmax, ymin, and ymax
-input_list$d_proj_2_xmin <- extent[1]
-input_list$d_proj_2_xmax <- extent[2]
-input_list$d_proj_2_ymin <- extent[3]
-input_list$d_proj_2_ymax <- extent[4]
+input_list$d_proj_2_xmin <- as.character(extent[1])
+input_list$d_proj_2_xmax <- as.character(extent[2])
+input_list$d_proj_2_ymin <- as.character(extent[3])
+input_list$d_proj_2_ymax <- as.character(extent[4])
 
 ```
 
