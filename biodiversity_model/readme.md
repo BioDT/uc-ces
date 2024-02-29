@@ -245,3 +245,16 @@ standard_init_linux.go:228: exec user process caused: no such file or directory
 
 When developing code for Docker containers then check for line ending issues: If you're working on a Windows machine and sharing files with a Linux-based Docker container, line ending differences can sometimes cause issues. Ensure that the entry point script and the Dockerfile have Unix-style line endings (LF). You can use a text editor with the ability to save files with Unix-style line endings or use tools like dos2unix to convert the line endings.
 
+### Where are things located?
+
+Signularity containers
+
+```
+/projappl/project_465000357/simonrolph/
+```
+
+Model code (on scratch)
+
+```
+/scratch/project_465000357/uc-ces
+```

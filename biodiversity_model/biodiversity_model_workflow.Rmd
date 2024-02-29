@@ -12,7 +12,7 @@ params:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-setwd("C:/Users/dylcar/OneDrive - UKCEH/Desktop/BioDT/uc-ces/biodiversity_model")
+#setwd("C:/Users/dylcar/OneDrive - UKCEH/Desktop/BioDT/uc-ces/biodiversity_model")
 ```
 
 Load packages
