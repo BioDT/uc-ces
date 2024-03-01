@@ -109,6 +109,15 @@ info_table <- tibble(
 
 ```{r}
 
+  knit_question = function(element_id){
+
+    external_element_id <- element_id
+
+    description = odmap_dict %>% filter(element_id == external_element_id) %>% pull(element_placeholder)
+
+    cat("\n\n#####", description, "\n")
+  }
+
   # Functions for dynamically knitting text elements
   knit_section = function(section_id){
     section = unique(odmap_dict$section[which(odmap_dict$section_id == section_id)])
@@ -142,11 +151,13 @@ info_table <- tibble(
   }
 
   knit_text = function(element_id){
+
+  knit_question(element_id)
+
     if(input_list[[element_id]] == ""){
       knit_missing(element_id)
     } else {
-      element_name = odmap_dict$element[which(odmap_dict$element_id == element_id)]
-      cat("\n", element_name, ": ", input_list[[element_id]], "\n", sep="")
+      cat("\n", input_list[[element_id]], "\n", sep="")
     }
   }
 
@@ -155,6 +166,8 @@ info_table <- tibble(
   }
 
   knit_extent = function(element_id){
+
+    knit_question(element_id)
 
     if(any(c(input_list[[paste0(element_id, "_xmin")]], input_list[[paste0(element_id, "_xmax")]], input_list[[paste0(element_id, "_ymin")]], input_list[[paste0(element_id, "_ymax")]])) %in% c(NA, FALSE)){
       knit_missing(element_id)
@@ -166,15 +179,19 @@ info_table <- tibble(
   }
 
   knit_suggestion = function(element_id){
+
+    knit_question(element_id)
+
     if(is.null(input_list[[element_id]])){
       knit_missing(element_id)
     } else {
-      element_name = odmap_dict$element[which(odmap_dict$element_id == element_id)]
-      cat("\n", element_name, ": ", paste(input_list[[element_id]], collapse = ", "), "\n", sep="")
+      cat("\n", paste(input_list[[element_id]], collapse = ", "), "\n", sep="")
     }
   }
 
   knit_model_settings = function(element_id){
+    
+    knit_question(element_id)
 
     if(is.null(input_list[[element_id]])){
        knit_missing(element_id)
@@ -184,22 +201,6 @@ info_table <- tibble(
       print(input_list[[element_id]] %>% kable())
 
     }
-
-
-
-    # if(is.null(input_list[["o_algorithms_1"]])){
-    #   knit_missing(element_id)
-    # } else {
-    #   for(alg in input_list[["o_algorithms_1"]]){
-    #     settings_tab = model_settings[[alg]] %>% filter(value != "")
-    #     if(nrow(settings_tab) == 0) {
-    #       cat("\n\n <span style='color:#DC3522'>\\<", alg, "\\> </span>\n", sep = "")
-    #     } else {
-    #       settings_char = paste0(settings_tab$setting, " (", settings_tab$value, ")", collapse = ", ")
-    #       cat("\n", alg, ": ", settings_char, "\n", sep = "")
-    #     }
-    #   }
-    # }
   }
 
   knit_missing = function(element_id){
@@ -208,16 +209,7 @@ info_table <- tibble(
       cat("\n\n <span style='color:#DC3522'>\\<", placeholder, "\\> </span>\n", sep = "")
     }
   }
-
-  knit_table = function(element_id){
-    if(!(element_id %in% elem_hide[[input_list$o_objective_1]] | element_id %in% elem_optional)){
-      placeholder = odmap_dict$element[which(odmap_dict$element_id == element_id)]
-      cat("\n\n <span style='color:#DC3522'>\\<", placeholder, "\\> </span>\n", sep = "")
-    }
-  }
-
-
-
+  
 ```
 
 ```{r, results = 'asis'}
@@ -255,3 +247,10 @@ for(i in 1:nrow(odmap_dict_rmd)){
 }
 ```
 
+```{r}
+# properties <- fp_text(color = "#000000", bold = TRUE, font.size = 12)
+# ftext1 <- ftext("", properties1)
+
+# read_docx() |> 
+#   body_add_fpar(paragraph)
+```

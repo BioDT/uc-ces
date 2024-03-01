@@ -50,29 +50,84 @@ set.seed(42)
 
 ## Load data
 
+### Environmental
+
+```{r load_environmental_data}
+#Currently loading a raster file locally but this could be upgraded to any other raster
+env_data <- rast("inputs/env-layers.tif")
+
+env_data_low_res <- aggregate(env_data, fact = 10)
+
+```
+
 ### Species data from GBIF
 
+```{r}
+# obtain GBIF username, password, and email credentials
+gbif_user <- Sys.getenv("GBIF_USER")
+gbif_pwd <- Sys.getenv("GBIF_PWD")
+gbif_email <- Sys.getenv("GBIF_EMAIL")
+
+# Get the extent of the raster
+raster_extent <- ext(env_data)
+
+# Convert the extent to a WKT polygon
+wkt_extent <- sprintf("POLYGON((%s %s, %s %s, %s %s, %s %s, %s %s))",
+                      xmin(raster_extent), ymin(raster_extent), # Bottom left
+                      xmax(raster_extent), ymin(raster_extent), # Bottom right
+                      xmax(raster_extent), ymax(raster_extent), # Top right
+                      xmin(raster_extent), ymax(raster_extent), # Top left
+                      xmin(raster_extent), ymin(raster_extent)) # Close polygon
+
+# Make a download request for Danaus plexippus occurrences in 2020
+res <- occ_download(
+  pred("taxonKey", params$taxonkey),
+  pred_within(wkt_extent),
+  pred("coordinateUncertaintyInMeters", "0,101"),
+  pred("hasCoordinate", TRUE),
+  pred("hasGeospatialIssue", FALSE)
+)
+
+# Initial check of the download status
+status <- occ_download_meta(res)$status
+
+# Keep checking the status until it's either "SUCCEEDED" or "FAILED"
+while(status != "SUCCEEDED") {
+  Sys.sleep(10) # Wait for 20 seconds before checking again
+  print("GBIF data preparation incomplete. Waiting 10 seconds longer...")
+  status <- occ_download_meta(res)$status # Update the status
+}
+
+  # Once the download is ready, you can download the file to your local system
+  occ_download_get(res, path = "GBIF_download", full.names = TRUE, overwrite = TRUE)
+  
+  # Unzip and read the data
+  unzip(list.files("GBIF_download", full.names = TRUE)[1], exdir = "GBIF_data")
+
+gbif_data = read.delim("GBIF_data/occurrence.txt", header = TRUE)
+
+# Your date-time string
+date_string <- "2024-03-01T12:57:18.394+00:00"
+
+# Convert to POSIXct, which handles the ISO 8601 format natively
+date_time <- as.POSIXct(date_string, format="%Y-%m-%dT%H:%M:%OS", tz = "UTC")
+
+# Save doi
+doi =  occ_download_meta(res)$doi
+access_datetime = as.POSIXct(occ_download_meta(res)$created, format="%Y-%m-%dT%H:%M:%OS", tz = "UTC")
+
+```
+
 ```{r load_gbif_data}
-#get the GBIF data from the API
-gbif_data <- occ_data(taxonKey = params$taxonkey,
-         gadmGid = "GBR.3_1", # scotland
-         limit=10000,
-         coordinateUncertaintyInMeters='0,101',
-         occurrenceStatus = NULL,
-         hasCoordinate=TRUE,
-         hasGeospatialIssue=FALSE)
 
 #get the appropriate columns
-gbif_data <- gbif_data$data %>% select(key, 
-                                       scientificName, 
+gbif_data <- gbif_data %>% select(scientificName, 
                                        phylum,
                                        order,
                                        family,
                                        y = decimalLatitude,
                                        x = decimalLongitude,
                                        occurrenceStatus,
-                                       datasetKey,
-                                       publishingOrgKey,
                                        coordinateUncertaintyInMeters,
                                        year,
                                        month,
@@ -86,23 +141,11 @@ gbif_data <- gbif_data$data %>% select(key,
 gbif_data$pr_ab <- 0
 gbif_data$pr_ab[gbif_data$occurrenceStatus == "PRESENT"] <- 1
 
-
-gbif_xy <- gbif_data %>% select(x,
-                                y)
+gbif_xy <- gbif_data %>% select(x, y)
 
 #Species name
 target_species = gbif_data$scientificName %>% first()
 print(target_species)
-```
-
-### Environmental
-
-```{r load_environmental_data}
-#Currently loading a raster file locally but this could be upgraded to any other raster
-env_data <- rast("inputs/env-layers.tif")
-
-env_data_low_res <- aggregate(env_data, fact = 10)
-
 ```
 
 ### FlexSDM workflow
@@ -112,15 +155,14 @@ env_data_low_res <- aggregate(env_data, fact = 10)
 Delimiting the calibration area (aka accessible area) is an essential step in SDMs both in methodological and theoretical terms. The calibration area will affect several characteristics of a SDM like the range of environmental variables, the number of absences, the distribution of background points and pseudo-absences, and unfortunately, some performance metrics like AUC and TSS. There are several ways to delimit a calibration area. In calib_area(). We used a method that the calibration area is delimited by a 5-km buffer around presences (shown in the figure below).
 
 ```{r calibation_area}
-ca <-
-  calib_area(
+
+ca <- calib_area(
     data = gbif_data,
     x = 'x',
     y = 'y',
     method =  c('buffer', width = 5000),
     crs = crs(env_data)
   ) # create a calibration area with 100 km buffer around occurrence points
-
 
 # visualize the species occurrences
 layer1 <- env_data_low_res[[8]]
@@ -138,6 +180,8 @@ Sample bias in species occurrence data has long been a recognized issue in SDM. 
 Next we apply environmental occurrence filtering using 8 bins and display the resulting filtered occurrence data
 
 ```{r occ_filtering}
+
+# I'm not sure we need this anymore, given that I have input the bounds of the cairngorms tif file into GBIF param search.
 gbif_data$id <- 1:nrow(gbif_data) # adding unique id to each row
 gbif_data_f <- gbif_data %>%
   occfilt_env(
@@ -579,7 +623,7 @@ input_list$o_software_1 = paste("Written using", R.Version()$version.string, "wi
 obtain_description("o_software_2")
 input_list$o_software_2 = "https://github.com/BioDT/uc-ces/tree/main/biodiversity_model"
 obtain_description("o_software_3")
-input_list$o_software_3 = paste("data obtained from GBIF API with DOI:", gbif_data %>% pull(datasetKey) %>% unique(), collapse = " ")
+input_list$o_software_3 = paste("data obtained from GBIF API with DOI:", doi)
 
 #### Data ####
 obtain_subsection_ids(section_name = "Data", "Biodiversity data") 
@@ -594,11 +638,7 @@ obtain_description("d_bio_3")
 input_list$d_bio_3 = "species"
 obtain_description("d_bio_4")
 
-input_list$d_bio_4 = paste("data obtained from GBIF API with DOI:", gbif_data %>% pull(datasetKey) %>% unique(),
-                           "accessed at:", 
-                           # Get current date and time, and save in string format
-                            format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                           collapse = " \n\n")
+input_list$d_bio_4 = paste("data obtained from GBIF API with DOI: ", doi, " at datetime: " access_datetime)
 
 obtain_description("d_bio_5")
 input_list$d_bio_5 = "opportunistic data"
@@ -717,7 +757,7 @@ obtain_description("m_estim_1")
 input_list$m_estim_1 <- "Not applicable"
 
 obtain_description("m_estim_2")
-input_list$m_estim_2 <- "No quantification" # need to verify this with Simon
+input_list$m_estim_2 <- "No quantification"
 
 obtain_description("m_estim_3")
 input_list$m_estim_3 <- "No assessment"
@@ -775,9 +815,9 @@ input_list$p_output_2 <- ifelse(script_search("msdm_posteriori"), "Overpredictio
 obtain_subsection_ids(section_name = "Prediction", "Uncertainty quantification")
 
 obtain_description("p_uncertainty_1")
-input_list$p_uncertainty_1 <- "Not applicable." # Check this with Simon
+input_list$p_uncertainty_1 <- "Not applicable."
 obtain_description("p_uncertainty_2")
-input_list$p_uncertainty_2 <- "Not applicable." # Check this with Simon
+input_list$p_uncertainty_2 <- "The models are trained using GBIF datasets. There may be biases introduced in the methods of data collection and source contributor."
 obtain_description("p_uncertainty_3")
 input_list$p_uncertainty_3 <- "Not applicable."
 obtain_description("p_uncertainty_4")
