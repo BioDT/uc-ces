@@ -14,9 +14,6 @@ library(tidyverse)
 library(rangeModelMetadata)
 library(tibble)
 
- ##################################################################################################################################
-
-
 rmm_dict = rmmDataDictionary()
 odmap_dict_rmd = filter(odmap_dict,! element_id %in% c("o_title_1", "o_authorship_1", "o_authorship_2"))
 
@@ -37,8 +34,6 @@ elem_hide = list("Inference and explanation" = c(pull(odmap_dict %>% filter(infe
   settings_tabset = NULL
   
   algorithms = character(0)
-
-  ##################################################################################################################################
 
   model_settings = list(suggestions = rmm_dict %>% filter(field1 == "model" & field2 == "algorithm") %>% pull(field3) %>% unique() %>% trimws())
                                   
@@ -61,8 +56,7 @@ if(length(input_list$o_algorithms_1) > length(model_settings$settings_tabset)) {
       model_settings[[new_alg]] = data.frame(setting = character(0), value = character(0))
     }
     
-    # Add new dataframe to output and settings_tabset
-    local({ # Needs local evaluation because of asynchronous execution of renderDataTable
+    local({
       .new_alg = new_alg
       output[[.new_alg]] = renderDataTable(model_settings[[.new_alg]], editable = T, rownames = F,
                                            options = list(dom = "t", pageLength = 50, autoWidth = T, columnDefs = list(list(width = '50%', targets = "_all"))))
@@ -70,7 +64,6 @@ if(length(input_list$o_algorithms_1) > length(model_settings$settings_tabset)) {
               model_settings[[.new_alg]][input_list[[paste0(.new_alg, '_cell_edit')]]$row, input_list[[paste0(.new_alg, '_cell_edit')]]$col + 1] = field_existsinput_list[[paste0(.new_alg, '_cell_edit')]]$value
 
     })
-   # appendTab(inputId = "settings_tabset", select = T, tab = tabPanel(title = new_alg, value = new_alg, dataTableOutput(outputId = new_alg)))
   }
   model_settings$settings_tabset = input_list$o_algorithms_1 # update name list of displayed tabs
 } else {
@@ -84,7 +77,7 @@ if(!is.null(input_list$settings_tabset)){
   model_settings[[input_list$settings_tabset]] = rbind(model_settings[[input_list$settings_tabset]], empty_row)
 } 
 
-# Define the information as a named vector
+
 info <- c(
   "Location name" = paste0("[", input_list$o_location_1, "](", input_list$location_url, ")"),
   #"Location URL" = paste0("\\[", input_list$location_url, "](", "" )
@@ -99,15 +92,10 @@ info <- c(
   "Temporal resolution" = input_list$o_scale_4
 )
 
-# Convert the named vector into a two-column tibble
 info_table <- tibble(
   Attribute = names(info),
-  Value = as.character(info)  # Convert all values to character for consistency
+  Value = as.character(info)
 )
-
-```
-
-```{r}
 
   knit_question = function(element_id){
 
@@ -118,14 +106,12 @@ info_table <- tibble(
     cat("\n\n#####", description, "\n")
   }
 
-  # Functions for dynamically knitting text elements
   knit_section = function(section_id){
     section = unique(odmap_dict$section[which(odmap_dict$section_id == section_id)])
     cat("\n\n##", section, "\n")
   }
 
   knit_subsection= function(subsection_id){
-    # Get all elements
     element_ids = odmap_dict$element_id[which(odmap_dict$subsection_id == subsection_id)]
     subsection = unique(odmap_dict$subsection[which(odmap_dict$subsection_id == subsection_id)])
 
@@ -214,7 +200,7 @@ info_table <- tibble(
 
 ```{r, results = 'asis'}
 for(i in 1:nrow(odmap_dict_rmd)){
-  # Find out if new section header needs to be rendered
+
   section_new = odmap_dict_rmd$section_id[i]
 
   if(section_new != section & !(section_new %in% elem_hide[[input_list$o_objective_1]])){
@@ -222,18 +208,13 @@ for(i in 1:nrow(odmap_dict_rmd)){
     knit_section(section)
   }
 
-  # Find out if new subsection header needs to be rendered
   subsection_new = odmap_dict_rmd$subsection_id[i]
-
   if(subsection_new != subsection){
-
     subsection = subsection_new
-
     knit_subsection(subsection)
 
   }
 
-  # Render elements
   switch(odmap_dict_rmd$element_type[i],
          text = knit_text(odmap_dict_rmd$element_id[i]),
          suggestion = knit_suggestion(odmap_dict_rmd$element_id[i]),
@@ -245,12 +226,4 @@ for(i in 1:nrow(odmap_dict_rmd)){
          ignore = "")
 
 }
-```
-
-```{r}
-# properties <- fp_text(color = "#000000", bold = TRUE, font.size = 12)
-# ftext1 <- ftext("", properties1)
-
-# read_docx() |> 
-#   body_add_fpar(paragraph)
 ```
