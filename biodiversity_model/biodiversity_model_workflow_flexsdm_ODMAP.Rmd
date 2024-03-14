@@ -63,7 +63,7 @@ env_data_low_res <- aggregate(env_data, fact = 10)
 ### Species data from GBIF
 
 ```{r}
-# obtain GBIF username, password, and email credentials
+# obtain GBIF username, password, and email credentials from R environ file
 gbif_user <- Sys.getenv("GBIF_USER")
 gbif_pwd <- Sys.getenv("GBIF_PWD")
 gbif_email <- Sys.getenv("GBIF_EMAIL")
@@ -93,24 +93,17 @@ status <- occ_download_meta(res)$status
 
 # Keep checking the status until it's either "SUCCEEDED" or "FAILED"
 while(status != "SUCCEEDED") {
-  Sys.sleep(10) # Wait for 20 seconds before checking again
   print("GBIF data preparation incomplete. Waiting 10 seconds longer...")
+  Sys.sleep(10) # Wait for 20 seconds before checking again
   status <- occ_download_meta(res)$status # Update the status
 }
 
-  # Once the download is ready, you can download the file to your local system
-  occ_download_get(res, path = "GBIF_download", full.names = TRUE, overwrite = TRUE)
-  
-  # Unzip and read the data
-  unzip(list.files("GBIF_download", full.names = TRUE)[1], exdir = "GBIF_data")
+# Once the download is ready, you can download the file to your local system
+occ_download_get(res, path = "GBIF_data", full.names = TRUE, overwrite = TRUE)
 
+# Unzip and read the data
+unzip(list.files("GBIF_data", full.names = TRUE)[1], exdir = "GBIF_data")
 gbif_data = read.delim("GBIF_data/occurrence.txt", header = TRUE)
-
-# Your date-time string
-date_string <- "2024-03-01T12:57:18.394+00:00"
-
-# Convert to POSIXct, which handles the ISO 8601 format natively
-date_time <- as.POSIXct(date_string, format="%Y-%m-%dT%H:%M:%OS", tz = "UTC")
 
 # Save doi
 doi =  occ_download_meta(res)$doi
@@ -178,7 +171,6 @@ points(gbif_data[,c("x", "y")], col = "#00000480")
 Sample bias in species occurrence data has long been a recognized issue in SDM. However, environmental filtering of observation data can improve model predictions by reducing redundancy in environmental (e.g. climatic) hyper-space (Varela et al. 2014). Here we will use the function occfilt_env() to thin the red fir occurrences based on environmental space. This function is unique to flexsdm, and in contrast with other packages is able to use any number of environmental dimensions and does not perform a PCA before filtering.
 
 Next we apply environmental occurrence filtering using 8 bins and display the resulting filtered occurrence data
-
 ```{r occ_filtering}
 
 # I'm not sure we need this anymore, given that I have input the bounds of the cairngorms tif file into GBIF param search.
@@ -426,6 +418,7 @@ list(f_gau, f_glm, f_svm, ens_m) %>% saveRDS(gsub(".tif",".RDS",params$out_file)
 ## Generate ODMAP inputs
 
 Here, we use ODMAP (Overview, Data, Model, Assessment and Prediction) to document our SDM model output and workflow
+
 ```{r, message = FALSE, warning = FALSE}
 input_list = readRDS(file.path(getwd(), "ODMAP_template_list.RDS"))
 
