@@ -227,3 +227,41 @@ for(i in 1:nrow(odmap_dict_rmd)){
 
 }
 ```
+
+```{r}
+md_to_bold <- function(...) {
+  library(crayon)
+  
+  # Combine all arguments into a single string with a space separator
+  text <- paste(..., sep = " ")
+  
+  # This pattern matches text enclosed in double asterisks
+  pattern <- "\\*\\*(.*?)\\*\\*"
+  
+  # Replacement function that will be applied to each match
+  replacement <- function(x) {
+    bold_text <- gsub(pattern, "\\1", x)
+    bold(bold_text)
+  }
+  
+  # Split the text into parts: bold and not bold, keeping the order
+  parts <- strsplit(text, pattern, perl = TRUE)[[1]]
+  
+  # Apply the replacement function to each part that was originally bold
+  bold_parts <- gregexpr(pattern, text, perl = TRUE)[[1]]
+  if (length(bold_parts) > 0 && bold_parts[1] != -1) {
+    matches <- regmatches(text, gregexpr(pattern, text, perl = TRUE))[[1]]
+    for (i in seq_along(matches)) {
+      parts[2 * i - 1] <- replacement(matches[i])
+    }
+  }
+  
+  # Combine the parts and print
+  cat(paste(parts, collapse = ""), "\n\n")
+}
+
+# Example usage
+md_to_bold("This is**", "bold**", "text and", "this is not.")
+
+
+```
