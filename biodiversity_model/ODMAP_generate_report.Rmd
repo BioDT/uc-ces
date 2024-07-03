@@ -17,6 +17,7 @@ library(tibble)
 
 # Load the range model metadata dictionary
 rmm_dict = rmmDataDictionary()
+
 # Filter the ODMAP dictionary to exclude specific element IDs
 odmap_dict_rmd = filter(odmap_dict, !element_id %in% c("o_title_1", "o_authorship_1", "o_authorship_2"))
 

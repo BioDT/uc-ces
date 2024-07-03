@@ -425,6 +425,8 @@ Here, we use ODMAP (Overview, Data, Model, Assessment and Prediction) to documen
 # Load the functions I have created seperately for ODMAP generation
 source("render_ODMAP.r")
 
+# Generate an ODMAP report.
+# The function parameters represent ODMAP ids. Please paste the parameter names in the obtain_description() to obtain a definition.
 render_ODMAP(
   o_authorship_1 = "BioDT species distribution models",
   o_authorship_3 = "simrol@ceh.ac.uk; dylcar@ceh.ac.uk",
@@ -486,6 +488,7 @@ render_ODMAP(
   m_depend_3 = "No method",
   m_threshold_1 = "Not applicable",
   a_perform_1 = "Not applicable",
+  a_perform_2 = "For each model, we selected three threshold values to generate binary suitability predictions: the threshold that maximizes TSS (max_sens_spec), the threshold at which sensitivity and specificity are equal (equal_sens_spec), and the threshold at which the Sorenson index is highest (max_sorenson).",
   a_perform_3 = "Not applicable.",
   a_plausibility_1 = "No response plots",
   a_plausibility_2 = "No expert judgements",

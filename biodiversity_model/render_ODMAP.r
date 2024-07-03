@@ -1,8 +1,8 @@
-# Function to obtain elements in each subsection from a dictionary data frame
+# Function to obtain elements in each subsection
 obtain_subsection_ids <- function(section_name, subsection_text) {
   # Filter the dictionary for the given subsection
-  odmap_dict_sub = odmap_dict %>% filter(section == section_name, subsection == subsection_text)
-  elements = odmap_dict_sub$element_id
+  ODMAP_dict_sub = ODMAP_dict %>% filter(section == section_name, subsection == subsection_text)
+  elements = ODMAP_dict_sub$element_id
 
   # Process names in the input list
   input_list_stemmed_names = unlist(sapply(names(input_list), USE.NAMES = F, FUN = function(name) {
@@ -11,26 +11,17 @@ obtain_subsection_ids <- function(section_name, subsection_text) {
   }))
 }
 
-# Define a function to search the script code use
-script_search <- function(regex, script) {
-  lines <- readLines(script, warn = FALSE)
-  any(sapply(lines, FUN = function(line) {
-    trimmed_line <- trimws(line) # Remove leading and trailing whitespace
-    !startsWith(trimmed_line, "#") && grepl(regex, trimmed_line) && !grepl("script_search", trimmed_line)
-  }))
-}
-
-# Function to obtain a description for a given ID from a dictionary data frame
+# Function to obtain a description for a given ID
 obtain_description <- function(id) {
   # Check if the ID exists in the dictionary
-  if (!(id %in% odmap_dict$element_id)) {
+  if (!(id %in% ODMAP_dict$element_id)) {
     last_underscore <- max(gregexpr("_", id)[[1]])
     id <- substr(id, 1, last_underscore - 1)
   }
 
   # Retrieve description and text entry for the ID
-  description = odmap_dict %>% filter(element_id == id) %>% pull(element_placeholder)
-  text_entry = odmap_dict %>% filter(element_id == id) %>% pull(Value)
+  description = ODMAP_dict %>% filter(element_id == id) %>% pull(element_placeholder)
+  text_entry = ODMAP_dict %>% filter(element_id == id) %>% pull(Value)
 
   # Print the description and text entry if available
   if (!is.na(text_entry) && identical(text_entry, character(0)) == FALSE && text_entry != "") {
@@ -40,10 +31,21 @@ obtain_description <- function(id) {
   }
 }
 
-render_ODMAP <- function(odmap_dict_path = "odmap_dict.csv",
+# Function to search the script for use of specific code. Returns TRUE or FALSE
+script_search <- function(regex, script) {
+  lines <- readLines(script, warn = FALSE)
+  any(sapply(lines, FUN = function(line) {
+    trimmed_line <- trimws(line) # Remove leading and trailing whitespace
+    !startsWith(trimmed_line, "#") && grepl(regex, trimmed_line) && !grepl("script_search", trimmed_line)
+  }))
+}
+
+# A function that generates an ODMAP report, formatted as a word document
+# ODMAP element IDs are specified as function parameters 
+render_ODMAP <- function(ODMAP_dict_path = "ODMAP_dict.csv",
                               raster_path = "untitled.tif",
                               model_development_script_path = "biodiversity_model_workflow_flexsdm_ODMAP.Rmd",
-                              odmap_generate_report_path = "ODMAP_generate_report.Rmd",
+                              ODMAP_generate_report_path = "ODMAP_generate_report.Rmd",
                               o_authorship_1 = NULL, o_authorship_3 = NULL, o_authorship_4 = NULL, 
                               o_objective_1 = NULL, o_objective_2 = NULL, 
                               o_location_1 = NULL, o_scale_2 = NULL, o_scale_3 = NULL, o_scale_4 = NULL, o_scale_5 = NULL, 
@@ -58,36 +60,49 @@ render_ODMAP <- function(odmap_dict_path = "odmap_dict.csv",
                               m_preselect_1 = NULL, m_multicol_1 = NULL, m_settings_2 = NULL, m_estim_1 = NULL, 
                               m_estim_2 = NULL, m_estim_3 = NULL, m_selection_1 = NULL, m_selection_2 = NULL, 
                               m_selection_3 = NULL, m_depend_1 = NULL, m_depend_2 = NULL, m_depend_3 = NULL, 
-                              m_threshold_1 = NULL, a_perform_1 = NULL, a_perform_3 = NULL, 
+                              m_threshold_1 = NULL, a_perform_1 = NULL, a_perform_2 = NULL, a_perform_3 = NULL, 
                               a_plausibility_1 = NULL, a_plausibility_2 = NULL, p_output_1 = NULL, 
                               p_uncertainty_1 = NULL, p_uncertainty_2 = NULL, 
                               p_uncertainty_3 = NULL, p_uncertainty_4 = NULL, p_uncertainty_5 = NULL) {
   
-  # List variables left with NULL values
+  # List all variables left with NULL values
   params <- as.list(match.call()[-1])
   null_params <- names(params)[sapply(params, is.null)]
   if (length(null_params) > 0) {
     message("The following parameters were left with NULL values: ", paste(null_params, collapse = ", "))
   }
 
-  # Load your SpatRaster object
+  # Load the SpatRaster object containing the environment variables
   output_raster_object <- rast(raster_path)
   input_list <- list()
 
-  # Internal object generation
+  # Generate the following from objects in the workflow
+  # target species name
   target_species <- gbif_data$scientificName %>% first()
+  
+  # Bounds of the raster
   extent <- ext(output_raster_object)
+
+  # Packages loaded, formatted to include their versions
   sess_info <- sessionInfo()
   loaded_packages <- sess_info$otherPkgs
   package_version_strings <- sapply(names(loaded_packages), function(pkg) {
     paste(pkg, "version", loaded_packages[[pkg]]$Version, sep = " ")
   })
   packages_versions <- paste(package_version_strings, collapse = " \n\n")
+
+  # Target species higher taxanomic group
   species_phylum <- gbif_data %>% filter(scientificName == target_species) %>% first() %>% pull(phylum) %>% unique()
   species_order <- gbif_data %>% filter(scientificName == target_species) %>% first() %>% pull(order) %>% unique()
   species_family <- gbif_data %>% filter(scientificName == target_species) %>% first() %>% pull(family) %>% unique()
+
+  # Number of records
   sample_size <- gbif_data %>% filter(scientificName == target_species) %>% nrow()
-  doi <- "your_doi_here"  # replace with actual DOI
+
+  # Download doi
+  input_list$o_software_3 = paste("data obtained from GBIF API with DOI:", doi)
+
+  # Obtain the datetime of download
   access_datetime <- Sys.time()
   
   # Populate input_list
@@ -114,25 +129,51 @@ render_ODMAP <- function(odmap_dict_path = "odmap_dict.csv",
   input_list$o_algorithms_2 <- o_algorithms_2
   input_list$o_algorithms_3 <- o_algorithms_3
   input_list$o_workflow_1 <- o_workflow_1
+
+  # Generate inputs for packages used
   input_list$o_software_1 <- paste("Written using", R.Version()$version.string, "with packages:\n\n", packages_versions)
+  
   input_list$o_software_2 <- o_software_2
   input_list$o_software_3 <- o_software_3
+
+  # Generate target species information
   input_list$d_bio_1 <- paste("Species: ", target_species, ", phylum: ", species_phylum, ", order: ", species_order, ", family: ", species_family, sep = "")
+  
   input_list$d_bio_2 <- d_bio_2
   input_list$d_bio_3 <- d_bio_3
+
+  # Generate doi and access date
   input_list$d_bio_4 <- paste0("data obtained from GBIF API with DOI: ", doi, " at datetime: ", access_datetime)
+  
   input_list$d_bio_5 <- d_bio_5
+
+  # Generate species sample size
   input_list$d_bio_6 <- paste("species: ", target_species, ", sample size = ", sample_size, sep = "")
+  
   input_list$d_bio_7 <- d_bio_7
+
+  # Generate information on occurence filtering
   input_list$d_bio_8 <- paste0("Spatial thinning: ", script_search("occfilt_env", script = model_development_script_path), ifelse(script_search("occfilt_env", script = model_development_script_path), "\n\nThinned occurrences based on environmental space", ""), "\n\n", "temporal thinning: FALSE")
+  
   input_list$d_bio_9 <- d_bio_9
   input_list$d_bio_10 <- d_bio_10
+
+  # Generate information on buffer use and calibration area
   input_list$d_bio_11 <- paste0("Species occurrences plotted for only species: ", target_species, "\n\n", "Spatial buffer: ", script_search("calib_area", script = model_development_script_path), ifelse(script_search("calib_area", script = model_development_script_path), "\n\nEstablished spatial buffers from occurrences with 5 km radius", ""))
+  
   input_list$d_bio_12 <- d_bio_12
+
+  # Generate information on partitioning
   input_list$d_part_1 <- paste0("random partitioning: ", script_search("part_random", script = model_development_script_path), ifelse(script_search("part_random", script = model_development_script_path), paste("\n\n", "Conducted in flexsdm using 4 fold random partitioning"), ""))
+  
   input_list$d_part_2 <- d_part_2
+
+  # Generate information on partitioning
   input_list$d_part_3 <- paste0("Random partitioning: ", script_search("part_random", script = model_development_script_path), ifelse(script_search("part_random", script = model_development_script_path), paste("\n\n", "Conducted in flexsdm using 4 fold random partitioning"), ""))
+  
+  # Generate information on the environment data parameters
   input_list$d_pred_1 <- paste(names(env_data), collapse = ", ")
+
   input_list$d_pred_2 <- d_pred_2
   input_list$d_pred_3_xmin <- extent[1]
   input_list$d_pred_3_xmax <- extent[2]
@@ -145,7 +186,10 @@ render_ODMAP <- function(odmap_dict_path = "odmap_dict.csv",
   input_list$d_pred_8 <- d_pred_8
   input_list$d_pred_9 <- d_pred_9
   input_list$d_pred_10 <- d_pred_10
+
+  # Generate a statement on data access
   input_list$d_proj_1 <- paste0("data obtained from GBIF API with DOI: ", doi, " at datetime: ", access_datetime)
+
   input_list$d_proj_2_xmin <- d_proj_2_xmin
   input_list$d_proj_2_xmax <- d_proj_2_xmax
   input_list$d_proj_2_ymin <- d_proj_2_ymin
@@ -158,6 +202,8 @@ render_ODMAP <- function(odmap_dict_path = "odmap_dict.csv",
   input_list$d_proj_8 <- d_proj_8
   input_list$m_preselect_1 <- m_preselect_1
   input_list$m_multicol_1 <- m_multicol_1
+
+  # Generate model information
   input_list$m_settings_1 <- data.frame(
     Model = c("Gaussian", "GLM", "SVM"),
     Family = c("gaussian", "gaussian", NA),
@@ -165,6 +211,7 @@ render_ODMAP <- function(odmap_dict_path = "odmap_dict.csv",
     Weights = "none",
     Notes = ""
   )
+
   input_list$m_settings_2 <- m_settings_2
   input_list$m_estim_1 <- m_estim_1
   input_list$m_estim_2 <- m_estim_2
@@ -177,28 +224,35 @@ render_ODMAP <- function(odmap_dict_path = "odmap_dict.csv",
   input_list$m_depend_3 <- m_depend_3
   input_list$m_threshold_1 <- m_threshold_1
   input_list$a_perform_1 <- a_perform_1
-  input_list$a_perform_2 <- "For each model, we selected three threshold values to generate binary suitability predictions: the threshold that maximizes TSS (max_sens_spec), the threshold at which sensitivity and specificity are equal (equal_sens_spec), and the threshold at which the Sorenson index is highest (max_sorenson)."
   input_list$a_perform_3 <- a_perform_3
   input_list$a_plausibility_1 <- a_plausibility_1
   input_list$a_plausibility_2 <- a_plausibility_2
   input_list$p_output_1 <- p_output_1
+
+  # Generate statement on posterior analysis
   input_list$p_output_2 <- paste0("Adjustments for overprediction: ", script_search("msdm_posteriori", script = model_development_script_path), ifelse(script_search("msdm_posteriori", script = model_development_script_path), "\n\nThe overprediction of SDMs was corrected for based on occurrence records and suitability patterns.", ""))
+  
   input_list$p_uncertainty_1 <- p_uncertainty_1
   input_list$p_uncertainty_2 <- p_uncertainty_2
   input_list$p_uncertainty_3 <- p_uncertainty_3
   input_list$p_uncertainty_4 <- p_uncertainty_4
   input_list$p_uncertainty_5 <- p_uncertainty_5
 
-  odmap_dict <- read_csv(odmap_dict_path)
+  # Read the ODMAP dictionary
+  ODMAP_dict <- read_csv(ODMAP_dict_path)
+
+  # Generate a sentence on authors of the SDM model
+  authors_string = paste(input_list$first_name, input_list$last_name, collapse = ", ")
 
   # Render the R Markdown to a Word document
   render(
-    input = file.path(getwd(), odmap_generate_report_path),
+    input = file.path(getwd(), ODMAP_generate_report_path),
     output_format = "word_document",
     output_file = file.path(getwd(), "ODMAP_report.docx"),
     params = input_list
   )
 
+  # state that ODMAP documentation has been generated
   message("ODMAP documentation generated.")
 }
 
