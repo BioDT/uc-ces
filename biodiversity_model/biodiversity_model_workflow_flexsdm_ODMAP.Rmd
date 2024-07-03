@@ -423,7 +423,7 @@ list(f_gau, f_glm, f_svm, ens_m) %>% saveRDS(gsub(".tif",".RDS",params$out_file)
 Here, we use ODMAP (Overview, Data, Model, Assessment and Prediction) to document our SDM model output and workflow
 ```{r}
 # Load the functions I have created seperately for ODMAP generation
-source("render_ODMAP.r")
+source("R/render_ODMAP.r")
 
 # Generate an ODMAP report.
 # The function parameters represent ODMAP ids. Please paste the parameter names in the obtain_description() to obtain a definition.
