@@ -1,0 +1,235 @@
+---
+output: word_document
+title: "`r paste(input_list$o_authorship_1)`"
+author: "`r authors_string`"
+subtitle: "– ODMAP Protocol –"
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval=TRUE, message=FALSE, warning=FALSE)
+
+# Load necessary libraries
+library(DT)
+library(tidyverse)
+library(rangeModelMetadata)
+library(tibble)
+
+# Load the range model metadata dictionary
+rmm_dict = rmmDataDictionary()
+# Filter the ODMAP dictionary to exclude specific element IDs
+odmap_dict_rmd = filter(odmap_dict, !element_id %in% c("o_title_1", "o_authorship_1", "o_authorship_2"))
+
+# Initialize variables for section and subsection tracking
+section = ""
+subsection = ""
+
+# Define lists of elements to hide based on their usage in different contexts
+elem_hide = list(
+  "Inference and explanation" = c(
+    pull(odmap_dict %>% filter(inference == 0), element_id), # unused elements
+    unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(inference  == 0)), subsection_id)), # unused subsections
+    "p"
+  ),
+  "Prediction and mapping" = c(
+    pull(odmap_dict %>% filter(prediction == 0), element_id),
+    unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(prediction == 0)), subsection_id))
+  ),
+  "Projection and transfer" = c(
+    pull(odmap_dict %>% filter(projection == 0), element_id),
+    unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(projection  == 0)), subsection_id))
+  )
+)
+
+# Define a list of optional elements
+elem_optional = c(
+  pull(odmap_dict %>% filter(optional == 1), element_id), # optional elements
+  unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(optional == 1)), subsection_id)) # optional subsections
+)
+
+# Initialize variables for algorithm settings
+settings_tabset = NULL
+algorithms = character(0)
+model_settings = list(
+  suggestions = rmm_dict %>% filter(field1 == "model" & field2 == "algorithm") %>% pull(field3) %>% unique() %>% trimws()
+)
+model_settings_import = list(algorithms = character(0))
+output = list()
+
+# Check for new algorithms selected and update settings accordingly
+if (length(input_list$o_algorithms_1) > length(model_settings$settings_tabset)) {
+  new_algs = setdiff(input_list$o_algorithms_1, model_settings$settings_tabset)
+  for (new_alg in new_algs) {
+    # Create dataframe for new algorithm
+    if (new_alg %in% model_settings_import[["algorithms"]]) {
+      model_settings[[new_alg]] = model_settings_import[[new_alg]]
+    } else if (new_alg %in% filter(rmm_dict, field2 == "algorithm")$field3) {
+      model_settings[[new_alg]] = rmm_dict %>%
+        filter(field1 == "model" & field2 == "algorithm" & field3 == new_alg) %>%
+        mutate(setting = entity, value = as.character(NA)) %>%
+        dplyr::select(setting, value)
+    } else {
+      model_settings[[new_alg]] = data.frame(setting = character(0), value = character(0))
+    }
+    
+    local({
+      .new_alg = new_alg
+      output[[.new_alg]] = renderDataTable(model_settings[[.new_alg]], editable = T, rownames = F,
+                                           options = list(dom = "t", pageLength = 50, autoWidth = T, columnDefs = list(list(width = '50%', targets = "_all"))))
+      model_settings[[.new_alg]][input_list[[paste0(.new_alg, '_cell_edit')]]$row, input_list[[paste0(.new_alg, '_cell_edit')]]$col + 1] = input_list[[paste0(.new_alg, '_cell_edit')]]$value
+    })
+  }
+  model_settings$settings_tabset = input_list$o_algorithms_1 # update name list of displayed tabs
+} else {
+  hide_alg = setdiff(model_settings$settings_tabset, input_list$o_algorithms_1)
+  model_settings$settings_tabset = input_list$o_algorithms_1
+}
+
+if (!is.null(input_list$settings_tabset)) {
+  empty_row = data.frame(setting = NA, value = NA)
+  model_settings[[input_list$settings_tabset]] = rbind(model_settings[[input_list$settings_tabset]], empty_row)
+}
+
+# Create a list of spatial and temporal information for the analysis
+info <- c(
+  "Location name" = paste0("[", input_list$o_location_1, "](", input_list$location_url, ")"),
+  "Spatial extent minimum longitude" = as.character(extent[1]),
+  "Spatial extent maximum longitude" = as.character(extent[2]),
+  "Spatial extent minimum latitude" = as.character(extent[3]),
+  "Spatial extent maximum latitude" = as.character(extent[4]),
+  "Boundary type" = input_list$o_scale_5,
+  "Spatial resolution (Metres)" = input_list$o_scale_2,
+  "Temporal extent start" = input_list$o_scale_3,
+  "Temporal extent end" = input_list$o_scale_3,
+  "Temporal resolution" = input_list$o_scale_4
+)
+
+# Create a tibble for the information table
+info_table <- tibble(
+  Attribute = names(info),
+  Value = as.character(info)
+)
+
+# Function to knit a question based on the element ID
+knit_question = function(element_id) {
+  external_element_id <- element_id
+  description = odmap_dict %>% filter(element_id == external_element_id) %>% pull(element_placeholder)
+  cat("\n\n#####", description, "\n")
+}
+
+# Function to knit a section based on the section ID
+knit_section = function(section_id) {
+  section = unique(odmap_dict$section[which(odmap_dict$section_id == section_id)])
+  cat("\n\n##", section, "\n")
+}
+
+# Function to knit a subsection based on the subsection ID
+knit_subsection = function(subsection_id) {
+  element_ids = odmap_dict$element_id[which(odmap_dict$subsection_id == subsection_id)]
+  subsection = unique(odmap_dict$subsection[which(odmap_dict$subsection_id == subsection_id)])
+  
+  # Determine whether the subsection needs to be rendered
+  all_optional = all((element_ids %in% elem_hide[[input_list$o_objective_1]] | element_ids %in% elem_optional))
+  
+  # Render header if necessary
+  if (!all_optional) {
+    cat("\n\n####", subsection, "\n")
+  } else {
+    all_empty = TRUE
+    for (id in element_ids) {
+      if (input_list[[id]] != "") {
+        all_empty = FALSE
+        break
+      }
+    }
+    if (!all_empty) {
+      cat("\n\n####", subsection, "\n")
+    }
+  }
+}
+
+# Function to knit text based on the element ID
+knit_text = function(element_id) {
+  knit_question(element_id)
+  if (input_list[[element_id]] == "") {
+    knit_missing(element_id)
+  } else {
+    cat("\n", input_list[[element_id]], "\n", sep="")
+  }
+}
+
+# Function to knit authors based on the element ID
+knit_authors = function(element_id) {
+  paste(authors$df$first_name, authors$df$last_name, collapse = ", ")
+}
+
+# Function to knit spatial extent based on the element ID
+knit_extent = function(element_id) {
+  knit_question(element_id)
+  if (any(c(input_list[[paste0(element_id, "_xmin")]], input_list[[paste0(element_id, "_xmax")]], input_list[[paste0(element_id, "_ymin")]], input_list[[paste0(element_id, "_ymax")]])) %in% c(NA, FALSE)) {
+    knit_missing(element_id)
+  } else {
+    element_value = paste(c(input_list[[paste0(element_id, "_xmin")]], input_list[[paste0(element_id, "_xmax")]],
+                            input_list[[paste0(element_id, "_ymin")]], input_list[[paste0(element_id, "_ymax")]]), collapse = ", ")
+    cat("\nSpatial extent: ", element_value, " (xmin, xmax, ymin, ymax)\n", sep="")
+  }
+}
+
+# Function to knit suggestions based on the element ID
+knit_suggestion = function(element_id) {
+  knit_question(element_id)
+  if (is.null(input_list[[element_id]])) {
+    knit_missing(element_id)
+  } else {
+    cat("\n", paste(input_list[[element_id]], collapse = ", "), "\n", sep="")
+  }
+}
+
+# Function to knit model settings based on the element ID
+knit_model_settings = function(element_id) {
+  knit_question(element_id)
+  if (is.null(input_list[[element_id]])) {
+    knit_missing(element_id)
+  } else {
+    print(input_list[[element_id]] %>% kable())
+  }
+}
+
+# Function to handle missing elements
+knit_missing = function(element_id) {
+  if (!(element_id %in% elem_hide[[input_list$o_objective_1]] | element_id %in% elem_optional)) {
+    placeholder = odmap_dict$element[which(odmap_dict$element_id == element_id)]
+    cat("\n\n <span style='color:#DC3522'>\\<", placeholder, "\\> </span>\n", sep = "")
+  }
+}
+
+```
+
+```{r, results = 'asis'}
+
+# Loop through the ODMAP dictionary and render sections, subsections, and elements
+for (i in 1:nrow(odmap_dict_rmd)) {
+  section_new = odmap_dict_rmd$section_id[i]
+  if (section_new != section & !(section_new %in% elem_hide[[input_list$o_objective_1]])) {
+    section = section_new
+    knit_section(section)
+  }
+
+  subsection_new = odmap_dict_rmd$subsection_id[i]
+  if (subsection_new != subsection) {
+    subsection = subsection_new
+    knit_subsection(subsection)
+  }
+
+  switch(odmap_dict_rmd$element_type[i],
+         text = knit_text(odmap_dict_rmd$element_id[i]),
+         suggestion = knit_suggestion(odmap_dict_rmd$element_id[i]),
+         objective = knit_suggestion(odmap_dict_rmd$element_id[i]),
+         extent = knit_extent(odmap_dict_rmd$element_id[i]),
+         model_algorithm = knit_suggestion(odmap_dict_rmd$element_id[i]),
+         model_setting = knit_model_settings(odmap_dict_rmd$element_id[i]),
+         scale_summary_table = print(info_table %>% kable()),
+         ignore = "")
+}
+
+```

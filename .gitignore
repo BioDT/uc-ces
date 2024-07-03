@@ -15,3 +15,6 @@ biodiversity_model/untitled.tif
 biodiversity_model/test.R
 biodiversity_model/biodiversity_model.Rproj
 biodiversity_model/GBIF_data/*
+biodiversity_model/inputs/upscaled_scotland
+biodiversity_model/GBIF_data_red_squirrel
+temp.r

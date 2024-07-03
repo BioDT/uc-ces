@@ -208,7 +208,6 @@ gbif_data_pa <- gbif_data_pa %>% sdm_extract(
     filter_na = TRUE
   )
 
-gbif_data_pa %>% select(names(env_data))%>% is.na() %>%colSums()
 ```
 
 #### Model fitting
