@@ -425,9 +425,14 @@ Here, we use ODMAP (Overview, Data, Model, Assessment and Prediction) to documen
 # Load the functions I have created seperately for ODMAP generation
 source("R/render_ODMAP.r")
 
+# Read the ODMAP dictionary
+ODMAP_dictionary <- read_csv("odmap_dict.csv")
+
 # Generate an ODMAP report.
 # The function parameters represent ODMAP ids. Please paste the parameter names in the obtain_description() to obtain a definition.
 render_ODMAP(
+  ODMAP_dictionary = ODMAP_dictionary,
+
   o_authorship_1 = "BioDT species distribution models",
   o_authorship_3 = "simrol@ceh.ac.uk; dylcar@ceh.ac.uk",
   o_authorship_4 = "",

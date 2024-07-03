@@ -1,27 +1,14 @@
-# Function to obtain elements in each subsection
-obtain_subsection_ids <- function(section_name, subsection_text) {
-  # Filter the dictionary for the given subsection
-  ODMAP_dict_sub = ODMAP_dict %>% filter(section == section_name, subsection == subsection_text)
-  elements = ODMAP_dict_sub$element_id
-
-  # Process names in the input list
-  input_list_stemmed_names = unlist(sapply(names(input_list), USE.NAMES = F, FUN = function(name) {
-    last_underscore <- max(gregexpr("_", name)[[1]])
-    substr(name, 1, last_underscore - 1)
-  }))
-}
-
 # Function to obtain a description for a given ID
 obtain_description <- function(id) {
   # Check if the ID exists in the dictionary
-  if (!(id %in% ODMAP_dict$element_id)) {
+  if (!(id %in% ODMAP_dictionary$element_id)) {
     last_underscore <- max(gregexpr("_", id)[[1]])
     id <- substr(id, 1, last_underscore - 1)
   }
 
   # Retrieve description and text entry for the ID
-  description = ODMAP_dict %>% filter(element_id == id) %>% pull(element_placeholder)
-  text_entry = ODMAP_dict %>% filter(element_id == id) %>% pull(Value)
+  description = ODMAP_dictionary %>% filter(element_id == id) %>% pull(element_placeholder)
+  text_entry = ODMAP_dictionary %>% filter(element_id == id) %>% pull(Value)
 
   # Print the description and text entry if available
   if (!is.na(text_entry) && identical(text_entry, character(0)) == FALSE && text_entry != "") {
@@ -42,28 +29,29 @@ script_search <- function(regex, script) {
 
 # A function that generates an ODMAP report, formatted as a word document
 # ODMAP element IDs are specified as function parameters 
-render_ODMAP <- function(ODMAP_dict_path = "ODMAP_dict.csv",
-                              raster_path = "untitled.tif",
-                              model_development_script_path = "biodiversity_model_workflow_flexsdm_ODMAP.Rmd",
-                              ODMAP_generate_report_path = "ODMAP_generate_report.Rmd",
-                              o_authorship_1 = NULL, o_authorship_3 = NULL, o_authorship_4 = NULL, 
-                              o_objective_1 = NULL, o_objective_2 = NULL, 
-                              o_location_1 = NULL, o_scale_2 = NULL, o_scale_3 = NULL, o_scale_4 = NULL, o_scale_5 = NULL, 
-                              o_bio_1 = NULL, o_bio_2 = NULL, o_concept_1 = NULL, o_assumptions_1 = NULL, o_algorithms_1 = NULL, 
-                              o_algorithms_2 = NULL, o_algorithms_3 = NULL, o_workflow_1 = NULL, 
-                              o_software_2 = NULL, o_software_3 = NULL, 
-                              d_bio_2 = NULL, d_bio_3 = NULL, d_bio_5 = NULL, d_bio_7 = NULL, d_bio_9 = NULL, d_bio_10 = NULL, 
-                              d_bio_12 = NULL, d_part_2 = NULL, d_pred_2 = NULL, d_pred_4 = NULL, d_pred_5 = NULL, 
-                              d_pred_6 = NULL, d_pred_7 = NULL, d_pred_8 = NULL, d_pred_9 = NULL, d_pred_10 = NULL, 
-                              d_proj_2_xmin = NULL, d_proj_2_xmax = NULL, d_proj_2_ymin = NULL, d_proj_2_ymax = NULL,
-                              d_proj_3 = NULL, d_proj_4 = NULL, d_proj_5 = NULL, d_proj_6 = NULL, d_proj_7 = NULL, d_proj_8 = NULL, 
-                              m_preselect_1 = NULL, m_multicol_1 = NULL, m_settings_2 = NULL, m_estim_1 = NULL, 
-                              m_estim_2 = NULL, m_estim_3 = NULL, m_selection_1 = NULL, m_selection_2 = NULL, 
-                              m_selection_3 = NULL, m_depend_1 = NULL, m_depend_2 = NULL, m_depend_3 = NULL, 
-                              m_threshold_1 = NULL, a_perform_1 = NULL, a_perform_2 = NULL, a_perform_3 = NULL, 
-                              a_plausibility_1 = NULL, a_plausibility_2 = NULL, p_output_1 = NULL, 
-                              p_uncertainty_1 = NULL, p_uncertainty_2 = NULL, 
-                              p_uncertainty_3 = NULL, p_uncertainty_4 = NULL, p_uncertainty_5 = NULL) {
+render_ODMAP <- function(     
+  ODMAP_dictionary,
+  raster_path = "untitled.tif",
+  model_development_script_path = "biodiversity_model_workflow_flexsdm_ODMAP.Rmd",
+  ODMAP_generate_report_path = "ODMAP_generate_report.Rmd",
+  o_authorship_1 = NULL, o_authorship_3 = NULL, o_authorship_4 = NULL, 
+  o_objective_1 = NULL, o_objective_2 = NULL, 
+  o_location_1 = NULL, o_scale_2 = NULL, o_scale_3 = NULL, o_scale_4 = NULL, o_scale_5 = NULL, 
+  o_bio_1 = NULL, o_bio_2 = NULL, o_concept_1 = NULL, o_assumptions_1 = NULL, o_algorithms_1 = NULL, 
+  o_algorithms_2 = NULL, o_algorithms_3 = NULL, o_workflow_1 = NULL, 
+  o_software_2 = NULL, o_software_3 = NULL, 
+  d_bio_2 = NULL, d_bio_3 = NULL, d_bio_5 = NULL, d_bio_7 = NULL, d_bio_9 = NULL, d_bio_10 = NULL, 
+  d_bio_12 = NULL, d_part_2 = NULL, d_pred_2 = NULL, d_pred_4 = NULL, d_pred_5 = NULL, 
+  d_pred_6 = NULL, d_pred_7 = NULL, d_pred_8 = NULL, d_pred_9 = NULL, d_pred_10 = NULL, 
+  d_proj_2_xmin = NULL, d_proj_2_xmax = NULL, d_proj_2_ymin = NULL, d_proj_2_ymax = NULL,
+  d_proj_3 = NULL, d_proj_4 = NULL, d_proj_5 = NULL, d_proj_6 = NULL, d_proj_7 = NULL, d_proj_8 = NULL, 
+  m_preselect_1 = NULL, m_multicol_1 = NULL, m_settings_2 = NULL, m_estim_1 = NULL, 
+  m_estim_2 = NULL, m_estim_3 = NULL, m_selection_1 = NULL, m_selection_2 = NULL, 
+  m_selection_3 = NULL, m_depend_1 = NULL, m_depend_2 = NULL, m_depend_3 = NULL, 
+  m_threshold_1 = NULL, a_perform_1 = NULL, a_perform_2 = NULL, a_perform_3 = NULL, 
+  a_plausibility_1 = NULL, a_plausibility_2 = NULL, p_output_1 = NULL, 
+  p_uncertainty_1 = NULL, p_uncertainty_2 = NULL, 
+  p_uncertainty_3 = NULL, p_uncertainty_4 = NULL, p_uncertainty_5 = NULL) {
   
   # List all variables left with NULL values
   params <- as.list(match.call()[-1])
@@ -237,9 +225,6 @@ render_ODMAP <- function(ODMAP_dict_path = "ODMAP_dict.csv",
   input_list$p_uncertainty_3 <- p_uncertainty_3
   input_list$p_uncertainty_4 <- p_uncertainty_4
   input_list$p_uncertainty_5 <- p_uncertainty_5
-
-  # Read the ODMAP dictionary
-  ODMAP_dict <- read_csv(ODMAP_dict_path)
 
   # Generate a sentence on authors of the SDM model
   authors_string = paste(input_list$first_name, input_list$last_name, collapse = ", ")
