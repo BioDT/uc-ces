@@ -19,7 +19,7 @@ library(tibble)
 rmm_dict = rmmDataDictionary()
 
 # Filter the ODMAP dictionary to exclude specific element IDs
-odmap_dict_rmd = filter(odmap_dict, !element_id %in% c("o_title_1", "o_authorship_1", "o_authorship_2"))
+odmap_dict_rmd = filter(ODMAP_dictionary, !element_id %in% c("o_title_1", "o_authorship_1", "o_authorship_2"))
 
 # Initialize variables for section and subsection tracking
 section = ""
@@ -28,24 +28,24 @@ subsection = ""
 # Define lists of elements to hide based on their usage in different contexts
 elem_hide = list(
   "Inference and explanation" = c(
-    pull(odmap_dict %>% filter(inference == 0), element_id), # unused elements
-    unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(inference  == 0)), subsection_id)), # unused subsections
+    pull(ODMAP_dictionary %>% filter(inference == 0), element_id), # unused elements
+    unique(pull(ODMAP_dictionary %>% group_by(subsection_id) %>% filter(all(inference  == 0)), subsection_id)), # unused subsections
     "p"
   ),
   "Prediction and mapping" = c(
-    pull(odmap_dict %>% filter(prediction == 0), element_id),
-    unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(prediction == 0)), subsection_id))
+    pull(ODMAP_dictionary %>% filter(prediction == 0), element_id),
+    unique(pull(ODMAP_dictionary %>% group_by(subsection_id) %>% filter(all(prediction == 0)), subsection_id))
   ),
   "Projection and transfer" = c(
-    pull(odmap_dict %>% filter(projection == 0), element_id),
-    unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(projection  == 0)), subsection_id))
+    pull(ODMAP_dictionary %>% filter(projection == 0), element_id),
+    unique(pull(ODMAP_dictionary %>% group_by(subsection_id) %>% filter(all(projection  == 0)), subsection_id))
   )
 )
 
 # Define a list of optional elements
 elem_optional = c(
-  pull(odmap_dict %>% filter(optional == 1), element_id), # optional elements
-  unique(pull(odmap_dict %>% group_by(subsection_id) %>% filter(all(optional == 1)), subsection_id)) # optional subsections
+  pull(ODMAP_dictionary %>% filter(optional == 1), element_id), # optional elements
+  unique(pull(ODMAP_dictionary %>% group_by(subsection_id) %>% filter(all(optional == 1)), subsection_id)) # optional subsections
 )
 
 # Initialize variables for algorithm settings
@@ -114,20 +114,20 @@ info_table <- tibble(
 # Function to knit a question based on the element ID
 knit_question = function(element_id) {
   external_element_id <- element_id
-  description = odmap_dict %>% filter(element_id == external_element_id) %>% pull(element_placeholder)
+  description = ODMAP_dictionary %>% filter(element_id == external_element_id) %>% pull(element_placeholder)
   cat("\n\n#####", description, "\n")
 }
 
 # Function to knit a section based on the section ID
 knit_section = function(section_id) {
-  section = unique(odmap_dict$section[which(odmap_dict$section_id == section_id)])
+  section = unique(ODMAP_dictionary$section[which(ODMAP_dictionary$section_id == section_id)])
   cat("\n\n##", section, "\n")
 }
 
 # Function to knit a subsection based on the subsection ID
 knit_subsection = function(subsection_id) {
-  element_ids = odmap_dict$element_id[which(odmap_dict$subsection_id == subsection_id)]
-  subsection = unique(odmap_dict$subsection[which(odmap_dict$subsection_id == subsection_id)])
+  element_ids = ODMAP_dictionary$element_id[which(ODMAP_dictionary$subsection_id == subsection_id)]
+  subsection = unique(ODMAP_dictionary$subsection[which(ODMAP_dictionary$subsection_id == subsection_id)])
   
   # Determine whether the subsection needs to be rendered
   all_optional = all((element_ids %in% elem_hide[[input_list$o_objective_1]] | element_ids %in% elem_optional))
@@ -152,7 +152,8 @@ knit_subsection = function(subsection_id) {
 # Function to knit text based on the element ID
 knit_text = function(element_id) {
   knit_question(element_id)
-  if (input_list[[element_id]] == "") {
+
+  if (input_list[[element_id]] == "" || is.null(input_list[[element_id]])) {
     knit_missing(element_id)
   } else {
     cat("\n", input_list[[element_id]], "\n", sep="")
@@ -199,7 +200,7 @@ knit_model_settings = function(element_id) {
 # Function to handle missing elements
 knit_missing = function(element_id) {
   if (!(element_id %in% elem_hide[[input_list$o_objective_1]] | element_id %in% elem_optional)) {
-    placeholder = odmap_dict$element[which(odmap_dict$element_id == element_id)]
+    placeholder = ODMAP_dictionary$element[which(ODMAP_dictionary$element_id == element_id)]
     cat("\n\n <span style='color:#DC3522'>\\<", placeholder, "\\> </span>\n", sep = "")
   }
 }
@@ -210,6 +211,7 @@ knit_missing = function(element_id) {
 
 # Loop through the ODMAP dictionary and render sections, subsections, and elements
 for (i in 1:nrow(odmap_dict_rmd)) {
+
   section_new = odmap_dict_rmd$section_id[i]
   if (section_new != section & !(section_new %in% elem_hide[[input_list$o_objective_1]])) {
     section = section_new

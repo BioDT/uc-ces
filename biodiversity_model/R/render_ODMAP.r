@@ -31,12 +31,13 @@ script_search <- function(regex, script) {
 # ODMAP element IDs are specified as function parameters 
 render_ODMAP <- function(     
   ODMAP_dictionary,
-  raster_path = "untitled.tif",
+  input_raster_path = "inputs/env-layers.tif",
+  output_raster_path = "untitled.tif",
   model_development_script_path = "biodiversity_model_workflow_flexsdm_ODMAP.Rmd",
   ODMAP_generate_report_path = "ODMAP_generate_report.Rmd",
   o_authorship_1 = NULL, o_authorship_3 = NULL, o_authorship_4 = NULL, 
   o_objective_1 = NULL, o_objective_2 = NULL, 
-  o_location_1 = NULL, o_scale_2 = NULL, o_scale_3 = NULL, o_scale_4 = NULL, o_scale_5 = NULL, 
+  o_location_1 = NULL, o_scale_2 = NULL, o_scale_3 = NULL, o_scale_4 = NULL, o_scale_5 = NULL,
   o_bio_1 = NULL, o_bio_2 = NULL, o_concept_1 = NULL, o_assumptions_1 = NULL, o_algorithms_1 = NULL, 
   o_algorithms_2 = NULL, o_algorithms_3 = NULL, o_workflow_1 = NULL, 
   o_software_2 = NULL, o_software_3 = NULL, 
@@ -61,7 +62,7 @@ render_ODMAP <- function(
   }
 
   # Load the SpatRaster object containing the environment variables
-  output_raster_object <- rast(raster_path)
+  output_raster_object <- rast(input_raster_path)
   input_list <- list()
 
   # Generate the following from objects in the workflow
@@ -111,7 +112,9 @@ render_ODMAP <- function(
   input_list$o_scale_5 <- o_scale_5
   input_list$o_bio_1 <- o_bio_1
   input_list$o_bio_2 <- o_bio_2
-  input_list$o_concept_1 <- o_concept_1
+
+  input_list$o_concept_1 = paste("investigating how environment variables affect the distributions of the species,", target_species, "in the Cairngorms National Park")
+
   input_list$o_assumptions_1 <- o_assumptions_1
   input_list$o_algorithms_1 <- o_algorithms_1
   input_list$o_algorithms_2 <- o_algorithms_2
@@ -126,7 +129,7 @@ render_ODMAP <- function(
 
   # Generate target species information
   input_list$d_bio_1 <- paste("Species: ", target_species, ", phylum: ", species_phylum, ", order: ", species_order, ", family: ", species_family, sep = "")
-  
+
   input_list$d_bio_2 <- d_bio_2
   input_list$d_bio_3 <- d_bio_3
 
@@ -160,6 +163,7 @@ render_ODMAP <- function(
   input_list$d_part_3 <- paste0("Random partitioning: ", script_search("part_random", script = model_development_script_path), ifelse(script_search("part_random", script = model_development_script_path), paste("\n\n", "Conducted in flexsdm using 4 fold random partitioning"), ""))
   
   # Generate information on the environment data parameters
+  env_data <- rast(input_raster_path)
   input_list$d_pred_1 <- paste(names(env_data), collapse = ", ")
 
   input_list$d_pred_2 <- d_pred_2
@@ -168,7 +172,10 @@ render_ODMAP <- function(
   input_list$d_pred_3_ymin <- extent[3]
   input_list$d_pred_3_ymax <- extent[4]
   input_list$d_pred_4 <- d_pred_4
-  input_list$d_pred_5 <- d_pred_5
+
+  # Obtain the coordinate reference system
+  input_list$d_pred_5 = crs(env_data, describe = T)$name
+
   input_list$d_pred_6 <- d_pred_6
   input_list$d_pred_7 <- d_pred_7
   input_list$d_pred_8 <- d_pred_8
