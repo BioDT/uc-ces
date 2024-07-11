@@ -38,11 +38,11 @@ render_ODMAP <- function(
   o_authorship_1 = NULL, o_authorship_3 = NULL, o_authorship_4 = NULL, 
   o_objective_1 = NULL, o_objective_2 = NULL, 
   o_location_1 = NULL, o_scale_2 = NULL, o_scale_3 = NULL, o_scale_4 = NULL, o_scale_5 = NULL,
-  o_bio_1 = NULL, o_bio_2 = NULL, o_concept_1 = NULL, o_assumptions_1 = NULL, o_algorithms_1 = NULL, 
+  o_bio_1 = NULL, o_bio_2 = NULL, o_assumptions_1 = NULL, o_algorithms_1 = NULL, 
   o_algorithms_2 = NULL, o_algorithms_3 = NULL, o_workflow_1 = NULL, 
   o_software_2 = NULL, o_software_3 = NULL, 
   d_bio_2 = NULL, d_bio_3 = NULL, d_bio_5 = NULL, d_bio_7 = NULL, d_bio_9 = NULL, d_bio_10 = NULL, 
-  d_bio_12 = NULL, d_part_2 = NULL, d_pred_2 = NULL, d_pred_4 = NULL, d_pred_5 = NULL, 
+  d_bio_12 = NULL, d_part_2 = NULL, d_pred_2 = NULL, d_pred_4 = NULL, 
   d_pred_6 = NULL, d_pred_7 = NULL, d_pred_8 = NULL, d_pred_9 = NULL, d_pred_10 = NULL, 
   d_proj_2_xmin = NULL, d_proj_2_xmax = NULL, d_proj_2_ymin = NULL, d_proj_2_ymax = NULL,
   d_proj_3 = NULL, d_proj_4 = NULL, d_proj_5 = NULL, d_proj_6 = NULL, d_proj_7 = NULL, d_proj_8 = NULL, 
@@ -219,6 +219,7 @@ render_ODMAP <- function(
   input_list$m_depend_3 <- m_depend_3
   input_list$m_threshold_1 <- m_threshold_1
   input_list$a_perform_1 <- a_perform_1
+  input_list$a_perform_2 <- a_perform_2
   input_list$a_perform_3 <- a_perform_3
   input_list$a_plausibility_1 <- a_plausibility_1
   input_list$a_plausibility_2 <- a_plausibility_2
