@@ -2,7 +2,7 @@
 #SBATCH --job-name=ecosystem_services_biodiversity
 #SBATCH --account=project_465000915
 #SBATCH --time=00:20:00
-#SBATCH --array=1-400
+#SBATCH --array=1-100
 #SBATCH --output=hpc_logs/%A_%a.out
 #SBATCH --error=hpc_logs/%A_%a.err
 #SBATCH --nodes=1
