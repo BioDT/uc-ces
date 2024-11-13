@@ -169,10 +169,10 @@ docker push ghcr.io/biodt/ces-biodiversity:X.X.X
 ```
 
 Now log into LUMI and locate yourself whereever you wish to place the `.sif` file. We have currently been placing them in the project persistent (Project home directory for
-shared project files) file system `/projappl/project_465000357/` in a folder each per user eg. `/projappl/project_465000357/simonrolph/`
+shared project files) file system `/projappl/project_465000915/` in a folder each per user eg. `/projappl/project_465000915/simonrolph/`
 
 ```
-cd /projappl/project_465000357/simonrolph
+cd /projappl/project_465000915/simonrolph
 
 # Pull image on LUMI (login is with github access token again, when prompted provide your github email, not username, and PAT))
 singularity pull --docker-login docker://ghcr.io/biodt/ces-biodiversity:X.X.X
@@ -183,7 +183,7 @@ singularity pull --docker-login docker://ghcr.io/biodt/ces-biodiversity:X.X.X
 Now we're going to run the model with the new singularity container. Go to the scratch directory, clone the repo via ssh/https and load some example environmental data:
 
 ```
-cd /scratch/project_465000357
+cd /scratch/project_465000915
 git clone git@github.com:BioDT/uc-ces.git
 cd uc-ces
 curl -L -o "biodiversity_model/inputs/env-layers.tif" "https://drive.google.com/uc?export=download&id=1veEX3RG_JXu_ZYu2oQMbWQ2v0R2dt4fW"
@@ -192,7 +192,7 @@ curl -L -o "biodiversity_model/inputs/env-layers.tif" "https://drive.google.com/
 Now you can run the model in a singularity container using the command `singularity exec`. For example:
 
 ```
-singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_X.X.X.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5`
+singularity exec --bind "$PWD" /projappl/project_465000915/simonrolph/ces-biodiversity_X.X.X.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5`
 ```
 
 This time we don't seem to actually need the `entrypoint.sh` that was needed for the docker container.
@@ -204,7 +204,7 @@ For submitting jobs we use the slurm scheduler (rather than running jobs via the
 ```
 #!/bin/bash
 #SBATCH --job-name=ecosystem_services_biodiversity
-#SBATCH --account=project_465000357
+#SBATCH --account=project_465000915
 #SBATCH --time=00:10:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -212,7 +212,7 @@ For submitting jobs we use the slurm scheduler (rather than running jobs via the
 #SBATCH --mem=16G
 #SBATCH --partition=small
 
-singularity exec --bind "$PWD" /projappl/project_465000357/simonrolph/ces-biodiversity_X.X.X.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5
+singularity exec --bind "$PWD" /projappl/project_465000915/simonrolph/ces-biodiversity_X.X.X.sif Rscript run_biodiversity_model.R 5334220 outputs/maps outputs/reports 5
 ```
 
 This script is assuming the `.sif` file is avaialable in the same location as noted earlier. You can then submit the job using 
@@ -223,7 +223,7 @@ sbatch submit_single_demo.sh
 
 You can then see how it's doing in the queue with `squeue --me`, here's an example response with the job running (well actually I think it had an error and the `CG` code means cancelling)
 ```
-rolphsim@uan01:/scratch/project_465000357/rolphsim/uc-ces/biodiversity_model> squeue --me
+rolphsim@uan01:/scratch/project_465000915/rolphsim/uc-ces/biodiversity_model> squeue --me
              JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
            4372446     small ecosyste rolphsim CG       0:17      1 nid002215
 ```
@@ -250,11 +250,11 @@ When developing code for Docker containers then check for line ending issues: If
 Signularity containers
 
 ```
-/projappl/project_465000357/simonrolph/
+/projappl/project_465000915/simonrolph/
 ```
 
 Model code (on scratch)
 
 ```
-/scratch/project_465000357/uc-ces
+/scratch/project_465000915/uc-ces
 ```

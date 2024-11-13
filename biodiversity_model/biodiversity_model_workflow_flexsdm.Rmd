@@ -280,6 +280,7 @@ ens_m <- fit_ensemble(
 )
 
 model_perf <- sdm_summarize(list(f_gau, f_glm, f_svm, ens_m))
+model_perf %>% saveRDS(gsub(".tif","_performance.RDS",params$out_file))
 knitr::kable(model_perf)
 
 ```
