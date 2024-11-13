@@ -18,3 +18,8 @@ biodiversity_model/GBIF_data/*
 biodiversity_model/inputs/upscaled_scotland
 biodiversity_model/GBIF_data_red_squirrel
 temp.r
+biodiversity_model_validation/cairngorms_boundary
+biodiversity_model_validation/ces_data
+biodiversity_model_validation/p drive data
+biodiversity_model_validation/references
+biodiversity_model_validation/vegetation_data
