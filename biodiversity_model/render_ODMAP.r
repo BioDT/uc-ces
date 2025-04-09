@@ -31,18 +31,24 @@ script_search <- function(regex, script) {
 # ODMAP element IDs are specified as function parameters 
 render_ODMAP <- function(     
   ODMAP_dictionary,
-  input_raster_path = "inputs/env-layers.tif",
-  output_raster_path = "untitled.tif",
-  model_development_script_path = "biodiversity_model_workflow_flexsdm_ODMAP.Rmd",
-  ODMAP_generate_report_path = "ODMAP_generate_report.Rmd",
+  env_data_res,
+  input_raster_path,
+  output_raster_path,
+  region_name,
+  doi,
+  access_datetime,
+  species_name,
+  model_development_script_path,
+  ODMAP_generate_report_path,
+
   o_authorship_1 = NULL, o_authorship_3 = NULL, o_authorship_4 = NULL, 
   o_objective_1 = NULL, o_objective_2 = NULL, 
-  o_location_1 = NULL, o_scale_2 = NULL, o_scale_3 = NULL, o_scale_4 = NULL, o_scale_5 = NULL,
+  o_location_1 = NULL, o_scale_3 = NULL, o_scale_4 = NULL, o_scale_5 = NULL,
   o_bio_1 = NULL, o_bio_2 = NULL, o_assumptions_1 = NULL, o_algorithms_1 = NULL, 
   o_algorithms_2 = NULL, o_algorithms_3 = NULL, o_workflow_1 = NULL, 
   o_software_2 = NULL, o_software_3 = NULL, 
   d_bio_2 = NULL, d_bio_3 = NULL, d_bio_5 = NULL, d_bio_7 = NULL, d_bio_9 = NULL, d_bio_10 = NULL, 
-  d_bio_12 = NULL, d_part_2 = NULL, d_pred_2 = NULL, d_pred_4 = NULL, 
+  d_bio_12 = NULL, d_part_2 = NULL, d_pred_2 = NULL, 
   d_pred_6 = NULL, d_pred_7 = NULL, d_pred_8 = NULL, d_pred_9 = NULL, d_pred_10 = NULL, 
   d_proj_2_xmin = NULL, d_proj_2_xmax = NULL, d_proj_2_ymin = NULL, d_proj_2_ymax = NULL,
   d_proj_3 = NULL, d_proj_4 = NULL, d_proj_5 = NULL, d_proj_6 = NULL, d_proj_7 = NULL, d_proj_8 = NULL, 
@@ -53,7 +59,7 @@ render_ODMAP <- function(
   a_plausibility_1 = NULL, a_plausibility_2 = NULL, p_output_1 = NULL, 
   p_uncertainty_1 = NULL, p_uncertainty_2 = NULL, 
   p_uncertainty_3 = NULL, p_uncertainty_4 = NULL, p_uncertainty_5 = NULL) {
-  
+
   # List all variables left with NULL values
   params <- as.list(match.call()[-1])
   null_params <- names(params)[sapply(params, is.null)]
@@ -62,12 +68,10 @@ render_ODMAP <- function(
   }
 
   # Load the SpatRaster object containing the environment variables
-  output_raster_object <- rast(input_raster_path)
+  output_raster_object <- rast(output_raster_path)
   input_list <- list()
 
   # Generate the following from objects in the workflow
-  # target species name
-  target_species <- gbif_data$scientificName %>% first()
   
   # Bounds of the raster
   extent <- ext(output_raster_object)
@@ -81,12 +85,12 @@ render_ODMAP <- function(
   packages_versions <- paste(package_version_strings, collapse = " \n\n")
 
   # Target species higher taxanomic group
-  species_phylum <- gbif_data %>% filter(scientificName == target_species) %>% first() %>% pull(phylum) %>% unique()
-  species_order <- gbif_data %>% filter(scientificName == target_species) %>% first() %>% pull(order) %>% unique()
-  species_family <- gbif_data %>% filter(scientificName == target_species) %>% first() %>% pull(family) %>% unique()
+  species_phylum <- gbif_data %>% filter(scientificName == species_name) %>% first() %>% pull(phylum) %>% unique()
+  species_order <- gbif_data %>% filter(scientificName == species_name) %>% first() %>% pull(order) %>% unique()
+  species_family <- gbif_data %>% filter(scientificName == species_name) %>% first() %>% pull(family) %>% unique()
 
   # Number of records
-  sample_size <- gbif_data %>% filter(scientificName == target_species) %>% nrow()
+  sample_size <- gbif_data %>% filter(scientificName == species_name) %>% nrow()
 
   # Download doi
   input_list$o_software_3 = paste("data obtained from GBIF API with DOI:", doi)
@@ -100,20 +104,22 @@ render_ODMAP <- function(
   input_list$o_authorship_4 <- o_authorship_4
   input_list$o_objective_1 <- o_objective_1
   input_list$o_objective_2 <- o_objective_2
-  input_list$o_taxon_1 <- target_species
+  input_list$o_taxon_1 <- species_name
   input_list$o_location_1 <- o_location_1
   input_list$o_scale_1_xmin <- as.character(extent[1])
   input_list$o_scale_1_xmax <- as.character(extent[2])
   input_list$o_scale_1_ymin <- as.character(extent[3])
   input_list$o_scale_1_ymax <- as.character(extent[4])
-  input_list$o_scale_2 <- o_scale_2
+
+  input_list$o_scale_2 <- env_data_res
+
   input_list$o_scale_3 <- o_scale_3
   input_list$o_scale_4 <- o_scale_4
   input_list$o_scale_5 <- o_scale_5
   input_list$o_bio_1 <- o_bio_1
   input_list$o_bio_2 <- o_bio_2
 
-  input_list$o_concept_1 = paste("investigating how environment variables affect the distributions of the species,", target_species, "in the Cairngorms National Park")
+  input_list$o_concept_1 = paste("investigating how environment variables affect the distributions of the species,", species_name, "in the Cairngorms National Park")
 
   input_list$o_assumptions_1 <- o_assumptions_1
   input_list$o_algorithms_1 <- o_algorithms_1
@@ -128,7 +134,7 @@ render_ODMAP <- function(
   input_list$o_software_3 <- o_software_3
 
   # Generate target species information
-  input_list$d_bio_1 <- paste("Species: ", target_species, ", phylum: ", species_phylum, ", order: ", species_order, ", family: ", species_family, sep = "")
+  input_list$d_bio_1 <- paste("Species: ", species_name, ", phylum: ", species_phylum, ", order: ", species_order, ", family: ", species_family, sep = "")
 
   input_list$d_bio_2 <- d_bio_2
   input_list$d_bio_3 <- d_bio_3
@@ -139,7 +145,7 @@ render_ODMAP <- function(
   input_list$d_bio_5 <- d_bio_5
 
   # Generate species sample size
-  input_list$d_bio_6 <- paste("species: ", target_species, ", sample size = ", sample_size, sep = "")
+  input_list$d_bio_6 <- paste("species: ", species_name, ", sample size = ", sample_size, sep = "")
   
   input_list$d_bio_7 <- d_bio_7
 
@@ -150,7 +156,7 @@ render_ODMAP <- function(
   input_list$d_bio_10 <- d_bio_10
 
   # Generate information on buffer use and calibration area
-  input_list$d_bio_11 <- paste0("Species occurrences plotted for only species: ", target_species, "\n\n", "Spatial buffer: ", script_search("calib_area", script = model_development_script_path), ifelse(script_search("calib_area", script = model_development_script_path), "\n\nEstablished spatial buffers from occurrences with 5 km radius", ""))
+  input_list$d_bio_11 <- paste0("Species occurrences plotted for only species: ", species_name, "\n\n", "Spatial buffer: ", script_search("calib_area", script = model_development_script_path), ifelse(script_search("calib_area", script = model_development_script_path), "\n\nEstablished spatial buffers from occurrences with 5 km radius", ""))
   
   input_list$d_bio_12 <- d_bio_12
 
@@ -171,7 +177,8 @@ render_ODMAP <- function(
   input_list$d_pred_3_xmax <- extent[2]
   input_list$d_pred_3_ymin <- extent[3]
   input_list$d_pred_3_ymax <- extent[4]
-  input_list$d_pred_4 <- d_pred_4
+
+  input_list$d_pred_4 <- env_data_res
 
   # Obtain the coordinate reference system
   input_list$d_pred_5 = crs(env_data, describe = T)$name
@@ -237,11 +244,14 @@ render_ODMAP <- function(
   # Generate a sentence on authors of the SDM model
   authors_string = paste(input_list$first_name, input_list$last_name, collapse = ", ")
 
+  species_folder_name = tolower(gsub(" |\\.", "_", species_name))
+  species_folder_name = tolower(gsub("__", "_", species_folder_name))
+
   # Render the R Markdown to a Word document
   render(
     input = file.path(getwd(), ODMAP_generate_report_path),
     output_format = "word_document",
-    output_file = file.path(getwd(), "ODMAP_report.docx"),
+    output_file = file.path("results", species_folder_name, paste0(region_name, "_ODMAP_report.docx")),
     params = input_list
   )
 
