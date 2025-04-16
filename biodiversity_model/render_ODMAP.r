@@ -249,9 +249,9 @@ render_ODMAP <- function(
 
   # Render the R Markdown to a Word document
   render(
-    input = file.path(getwd(), ODMAP_generate_report_path),
+    input = file.path("/home/users/dylcar/BioDT_SDMs/", ODMAP_generate_report_path),
     output_format = "word_document",
-    output_file = file.path("results", species_folder_name, paste0(region_name, "_ODMAP_report.docx")),
+    output_file = file.path("/home/users/dylcar/BioDT_SDMs/", params$jobname, "results", species_folder_name, paste0(region_name, "_ODMAP_report.docx")),
     params = input_list
   )
 

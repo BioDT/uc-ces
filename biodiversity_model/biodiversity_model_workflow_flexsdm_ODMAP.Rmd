@@ -9,6 +9,7 @@ params:
   study_region_boundary_path: NULL
   species_folder_name: NULL
   region_name: NULL
+  jobname: NULL
 ---
 
 ```{r, include=FALSE}
@@ -86,11 +87,16 @@ env_data_res = res(env_data)
 # gbif_pwd <- Sys.getenv("GBIF_PWD")
 # gbif_email <- Sys.getenv("GBIF_EMAIL")
 
-download_path = paste0("GBIF_data_scotland_", params$species_folder_name)
+download_path = file.path(params$jobname, paste0("GBIF_data_scotland_", params$species_folder_name))
+
+writeLines(params$jobname, "jobname.txt")
+writeLines(params$species_folder_name, "species_folder_name.txt")
 
 if (!dir.exists(download_path)){
 
-scotland_rast = rast("../inputs/Scotland/bio_image_scotland_1000.tif")
+dir.create(download_path)
+
+scotland_rast = rast("inputs/Scotland/bio_image_scotland_1000.tif")
 
 # Get the extent of the raster
 raster_extent <- ext(scotland_rast)
@@ -103,7 +109,7 @@ wkt_extent <- sprintf("POLYGON((%s %s, %s %s, %s %s, %s %s, %s %s))",
                       xmin(raster_extent), ymax(raster_extent), # Top left
                       xmin(raster_extent), ymin(raster_extent)) # Close polygon
 
-pwd = readLines("../pwd.txt")
+pwd = readLines("pwd.txt")
 
 # Make a download request for Danaus plexippus occurrences in 2020
 res <- occ_download(
@@ -128,6 +134,8 @@ while(status != "SUCCEEDED") {
   Sys.sleep(10) # Wait for 10 seconds before checking again
   status <- occ_download_meta(res)$status # Update the status
 }
+
+print(status)
 
 # Once the download is ready, you can download the file to your local system
 occ_download_get(res, path = download_path, full.names = TRUE, overwrite = TRUE)
@@ -479,15 +487,15 @@ model_outputs <- constrained
 model_outputs$suitable_unrecorded <-suitable_unrecorded
 plot(model_outputs, col=cl)
 
-if(!dir.exists("results")){
-  dir.create("results")
+if(!dir.exists(file.path(params$jobname, "results"))){
+  dir.create(file.path(params$jobname, "results"))
 }
 
-if(!dir.exists(file.path("results", params$species_folder_name))){
-  dir.create(file.path("results", params$species_folder_name))
+if(!dir.exists(file.path(params$jobname, "results", params$species_folder_name))){
+  dir.create(file.path(params$jobname, "results", params$species_folder_name))
 }
 
-output_raster_path = file.path("results", params$species_folder_name, params$out_file)
+output_raster_path = file.path(params$jobname, "results", params$species_folder_name, params$out_file)
 
 #save raster
 model_outputs %>% writeRaster(output_raster_path, overwrite=T)
@@ -501,10 +509,10 @@ list(f_gau, f_glm, f_svm, ens_m) %>% saveRDS(gsub(".tif",".RDS",output_raster_pa
 Here, we use ODMAP (Overview, Data, Model, Assessment and Prediction) to document our SDM model output and workflow
 ```{r}
 # Load the functions I have created seperately for ODMAP generation
-source("../render_ODMAP.r")
+source("render_ODMAP.r")
 
 # Read the ODMAP dictionary
-ODMAP_dictionary <- read_csv(../"odmap_dict.csv")
+ODMAP_dictionary <- read_csv("odmap_dict.csv")
 
 # Generate an ODMAP report.
 # The function parameters represent ODMAP ids. Please paste the parameter names in the obtain_description() to obtain a definition.
@@ -514,8 +522,8 @@ render_ODMAP(
   input_raster_path = params$env_layers_path,
   output_raster_path = output_raster_path,
   region_name = region_name,
-  model_development_script_path = "../biodiversity_model_workflow_flexsdm_ODMAP.Rmd",
-  ODMAP_generate_report_path = "../ODMAP_generate_report.Rmd",
+  model_development_script_path = "biodiversity_model_workflow_flexsdm_ODMAP.Rmd",
+  ODMAP_generate_report_path = "ODMAP_generate_report.Rmd",
 
   o_authorship_1 = "BioDT species distribution models",
   o_authorship_3 = "simrol@ceh.ac.uk; dylcar@ceh.ac.uk",
