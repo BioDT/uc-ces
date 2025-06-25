@@ -1,3 +1,5 @@
+https://zenodo.org/badge/DOI/10.5281/zenodo.15739368.svg
+
 # Models for Cultural Ecosystem Services Prototype Digital Twin
 
 This GitHub repository contains the model code required to run models to deliver the cultural ecosystem services pDT (previously 'use-case'). Readme last updated 28th July 2023.
