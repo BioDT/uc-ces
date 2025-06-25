@@ -1,4 +1,4 @@
-https://zenodo.org/badge/DOI/10.5281/zenodo.15739368.svg
+![https://zenodo.org/badge/DOI/10.5281/zenodo.15739368.svg](https://zenodo.org/badge/DOI/10.5281/zenodo.15739368.svg)
 
 # Models for Cultural Ecosystem Services Prototype Digital Twin
 
